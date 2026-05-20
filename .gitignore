@@ -13,3 +13,5 @@ secrets/
 *.log
 HELP.md
 bin/
+.omc/
+.claude/
