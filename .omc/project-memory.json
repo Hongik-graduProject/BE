@@ -29,6 +29,133 @@
   },
   "customNotes": [],
   "directoryMap": {},
-  "hotPaths": [],
+  "hotPaths": [
+    {
+      "path": "docker-compose.yml",
+      "accessCount": 2,
+      "lastAccessed": 1779248075558,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/hongik/grad/common/exception/GlobalExceptionHandler.java",
+      "accessCount": 2,
+      "lastAccessed": 1779248086317,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 1,
+      "lastAccessed": 1779248074959,
+      "type": "file"
+    },
+    {
+      "path": ".env.example",
+      "accessCount": 1,
+      "lastAccessed": 1779248075971,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/hongik/grad/common/api/ErrorCode.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248085304,
+      "type": "file"
+    },
+    {
+      "path": "src/test/java/com/hongik/grad/common/exception/GlobalExceptionHandlerTest.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248087265,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/hongik/grad/config/SecurityConfig.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248087847,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/hongik/grad/common/api/ApiResponse.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248088877,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/hongik/grad/common/api/PageMeta.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248089349,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/hongik/grad/common/exception/DomainException.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248090398,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/hongik/grad/common/jpa/BaseTimeEntity.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248091465,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/hongik/grad/config/CorsConfig.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248091950,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/hongik/grad/config/OpenApiConfig.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248093022,
+      "type": "file"
+    },
+    {
+      "path": "src/main/java/com/hongik/grad/HongikGradApplication.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248093742,
+      "type": "file"
+    },
+    {
+      "path": "src/main/resources/application.yml",
+      "accessCount": 1,
+      "lastAccessed": 1779248094697,
+      "type": "file"
+    },
+    {
+      "path": "src/main/resources/application-local.yml",
+      "accessCount": 1,
+      "lastAccessed": 1779248095117,
+      "type": "file"
+    },
+    {
+      "path": "src/test/resources/application-test.yml",
+      "accessCount": 1,
+      "lastAccessed": 1779248096249,
+      "type": "file"
+    },
+    {
+      "path": "src/test/java/com/hongik/grad/HongikGradApplicationTests.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248096747,
+      "type": "file"
+    },
+    {
+      "path": "src/test/java/com/hongik/grad/common/api/ApiResponseTest.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248097697,
+      "type": "file"
+    },
+    {
+      "path": "src/test/java/com/hongik/grad/config/CorsConfigTest.java",
+      "accessCount": 1,
+      "lastAccessed": 1779248098799,
+      "type": "file"
+    },
+    {
+      "path": "Dockerfile",
+      "accessCount": 1,
+      "lastAccessed": 1779248099810,
+      "type": "file"
+    }
+  ],
   "userDirectives": []
 }

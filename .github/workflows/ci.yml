@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'BE/**'
+      - '.github/workflows/ci.yml'
+  merge_group:
+
+jobs:
+  build:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: BE
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Grant gradlew execute permission
+        run: chmod +x gradlew
+
+      - name: Spotless check + build
+        run: ./gradlew spotlessCheck build --no-daemon
