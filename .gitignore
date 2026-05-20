@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+build/
+.gradle/
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+secrets/
+.DS_Store
+*.log
+HELP.md
+bin/
