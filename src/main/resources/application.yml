@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: hongik-grad
+  config:
+    import: "optional:file:./.env[.properties]"
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Flyway is the source of truth; do not flip to validate/update
+      ddl-auto: none
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      # PR-01 only: allow boot without DB until PR-02 wires Flyway
+      initialization-fail-timeout: -1
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  flyway:
+    enabled: false
+    baseline-on-migrate: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    root: INFO
+    com.hongik.grad: INFO
