@@ -5,6 +5,8 @@ spring:
     import: "optional:file:./.env[.properties]"
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
+  jackson:
+    property-naming-strategy: SNAKE_CASE
   threads:
     virtual:
       enabled: true
@@ -57,3 +59,7 @@ logging:
   level:
     root: INFO
     com.hongik.grad: INFO
+
+supabase:
+  jwt-secret: ${SUPABASE_JWT_SECRET:replace-me-with-supabase-jwt-secret}
+  audience: authenticated
