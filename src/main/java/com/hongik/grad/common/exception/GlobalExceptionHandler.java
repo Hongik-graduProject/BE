@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -50,7 +51,15 @@ public class GlobalExceptionHandler {
     return respond(ex.code(), ex.getMessage());
   }
 
-  // TODO PR-03: handle AuthenticationException / AccessDeniedException
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(
+      DataIntegrityViolationException ex) {
+    log.warn("Data integrity violation", ex);
+    return respond(ErrorCode.DUPLICATE, "Resource already exists or constraint violated");
+  }
+
+  // AuthenticationException / AccessDeniedException are handled at the Security
+  // filter chain via JsonAuthenticationEntryPoint / JsonAccessDeniedHandler (PR-03).
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ApiResponse<Void>> handleUnknown(Exception ex) {
     log.error("Unhandled exception", ex);
