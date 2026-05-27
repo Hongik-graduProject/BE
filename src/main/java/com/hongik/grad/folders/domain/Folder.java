@@ -40,7 +40,7 @@ public class Folder extends BaseTimeEntity {
 
   protected Folder() {}
 
-  private Folder(UUID userId, String name, String color, FolderType type, int displayOrder) {
+  public Folder(UUID userId, String name, String color, FolderType type, int displayOrder) {
     this.userId = userId;
     this.name = name;
     this.color = color;
@@ -75,5 +75,14 @@ public class Folder extends BaseTimeEntity {
 
   public int getDisplayOrder() {
     return displayOrder;
+  }
+
+  public void update(String name, String color) {
+    this.name = name;
+    this.color = color;
+  }
+
+  public void setDisplayOrder(int displayOrder) {
+    this.displayOrder = displayOrder;
   }
 }
