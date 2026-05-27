@@ -1,0 +1,24 @@
+package com.hongik.grad.folders.dto;
+
+import com.hongik.grad.folders.domain.Folder;
+import com.hongik.grad.folders.domain.FolderType;
+import java.time.OffsetDateTime;
+
+public record FolderResponse(
+    Long id,
+    String name,
+    String color,
+    FolderType type,
+    int displayOrder,
+    OffsetDateTime createdAt) {
+
+  public static FolderResponse from(Folder folder) {
+    return new FolderResponse(
+        folder.getId(),
+        folder.getName(),
+        folder.getColor(),
+        folder.getType(),
+        folder.getDisplayOrder(),
+        folder.getCreatedAt());
+  }
+}
