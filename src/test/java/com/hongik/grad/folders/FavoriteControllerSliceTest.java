@@ -217,9 +217,7 @@ class FavoriteControllerSliceTest {
             put("/folders/items/move")
                 .header(HttpHeaders.AUTHORIZATION, TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    objectMapper.writeValueAsString(
-                        Map.of("item_id", 10, "to_folder_id", 2))))
+                .content(objectMapper.writeValueAsString(Map.of("item_id", 10, "to_folder_id", 2))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("success"))
         .andExpect(jsonPath("$.data.ticker").value("005930"));
@@ -250,8 +248,7 @@ class FavoriteControllerSliceTest {
                 .header(HttpHeaders.AUTHORIZATION, TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    objectMapper.writeValueAsString(
-                        Map.of("item_id", 10, "to_folder_id", 999))))
+                    objectMapper.writeValueAsString(Map.of("item_id", 10, "to_folder_id", 999))))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.error").value("NOT_FOUND"));
   }
@@ -267,9 +264,7 @@ class FavoriteControllerSliceTest {
             put("/folders/items/move")
                 .header(HttpHeaders.AUTHORIZATION, TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    objectMapper.writeValueAsString(
-                        Map.of("item_id", 10, "to_folder_id", 2))))
+                .content(objectMapper.writeValueAsString(Map.of("item_id", 10, "to_folder_id", 2))))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.error").value("DUPLICATE"));
   }
@@ -281,9 +276,7 @@ class FavoriteControllerSliceTest {
         .perform(
             put("/folders/items/move")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    objectMapper.writeValueAsString(
-                        Map.of("item_id", 10, "to_folder_id", 2))))
+                .content(objectMapper.writeValueAsString(Map.of("item_id", 10, "to_folder_id", 2))))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.error").value("AUTH_INVALID"));
   }

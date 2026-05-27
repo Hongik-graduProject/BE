@@ -20,6 +20,7 @@ import com.hongik.grad.auth.handler.JsonAuthenticationEntryPoint;
 import com.hongik.grad.auth.provider.SupabaseJwtVerifier;
 import com.hongik.grad.common.api.ErrorCode;
 import com.hongik.grad.common.exception.DomainException;
+import com.hongik.grad.config.SecurityConfig;
 import com.hongik.grad.folders.api.FolderController;
 import com.hongik.grad.folders.application.FavoriteService;
 import com.hongik.grad.folders.application.FolderService;
@@ -28,6 +29,7 @@ import com.hongik.grad.folders.dto.AnalysisSummary;
 import com.hongik.grad.folders.dto.FavoriteItemResponse;
 import com.hongik.grad.folders.dto.FolderListResponse;
 import com.hongik.grad.folders.dto.FolderResponse;
+import com.hongik.grad.support.JwtTestFactory;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -42,9 +44,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-
-import com.hongik.grad.support.JwtTestFactory;
-import com.hongik.grad.config.SecurityConfig;
 
 @WebMvcTest(FolderController.class)
 @Import({
@@ -64,7 +63,8 @@ class FolderControllerSliceTest {
   @MockBean private FavoriteService favoriteService;
 
   private static final UUID USER_ID = UUID.randomUUID();
-  private static final String TOKEN = "Bearer " + JwtTestFactory.validToken(USER_ID, "test@test.com");
+  private static final String TOKEN =
+      "Bearer " + JwtTestFactory.validToken(USER_ID, "test@test.com");
 
   // ── POST /folders ────────────────────────────────────────────────────────
 
@@ -234,7 +234,8 @@ class FolderControllerSliceTest {
             put("/folders/order")
                 .header(HttpHeaders.AUTHORIZATION, TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Map.of("folder_ids", List.of(2L, 1L, 3L)))))
+                .content(
+                    objectMapper.writeValueAsString(Map.of("folder_ids", List.of(2L, 1L, 3L)))))
         .andExpect(status().isNoContent());
   }
 

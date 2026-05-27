@@ -2,7 +2,6 @@ package com.hongik.grad.folders.application;
 
 import com.hongik.grad.common.api.ErrorCode;
 import com.hongik.grad.common.exception.DomainException;
-import com.hongik.grad.folders.domain.Favorite;
 import com.hongik.grad.folders.domain.FavoriteRepository;
 import com.hongik.grad.folders.domain.Folder;
 import com.hongik.grad.folders.domain.FolderRepository;

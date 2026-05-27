@@ -35,6 +35,12 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
 
+krx:
+  api:
+    base-url: ${KRX_API_BASE_URL:}
+    key: ${KRX_API_KEY:}
+    secret: ${KRX_API_SECRET:}
+
 server:
   port: ${SERVER_PORT:8080}
 

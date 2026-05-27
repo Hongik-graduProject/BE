@@ -38,8 +38,7 @@ public class FavoriteController {
 
   @DeleteMapping("/{item_id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void delete(
-      @AuthenticationPrincipal AuthUser user, @PathVariable("item_id") Long itemId) {
+  public void delete(@AuthenticationPrincipal AuthUser user, @PathVariable("item_id") Long itemId) {
     favoriteService.delete(user.id(), itemId);
   }
 

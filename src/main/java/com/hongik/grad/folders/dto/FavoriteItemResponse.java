@@ -2,6 +2,7 @@ package com.hongik.grad.folders.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.hongik.grad.folders.domain.Favorite;
+import com.hongik.grad.stocks.dto.KrxQuote;
 import java.time.OffsetDateTime;
 
 public record FavoriteItemResponse(
@@ -24,6 +25,19 @@ public record FavoriteItemResponse(
         null,
         null,
         null,
+        new AnalysisSummary(false, "테마 분류 대기 중"),
+        favorite.getAddedAt());
+  }
+
+  public static FavoriteItemResponse from(Favorite favorite, KrxQuote quote) {
+    return new FavoriteItemResponse(
+        favorite.getId(),
+        favorite.getTicker(),
+        favorite.getMemo(),
+        favorite.getAvgPrice(),
+        quote.currentPrice(),
+        quote.changeRate(),
+        quote.changeAmount(),
         new AnalysisSummary(false, "테마 분류 대기 중"),
         favorite.getAddedAt());
   }

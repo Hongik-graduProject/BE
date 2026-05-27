@@ -3,14 +3,19 @@ package com.hongik.grad.folders.application;
 import com.hongik.grad.common.api.ErrorCode;
 import com.hongik.grad.common.exception.DomainException;
 import com.hongik.grad.folders.domain.Favorite;
-import com.hongik.grad.folders.domain.Folder;
 import com.hongik.grad.folders.domain.FavoriteRepository;
+import com.hongik.grad.folders.domain.Folder;
 import com.hongik.grad.folders.domain.FolderRepository;
 import com.hongik.grad.folders.dto.FavoriteItemResponse;
 import com.hongik.grad.folders.dto.FavoriteMoveRequest;
 import com.hongik.grad.folders.dto.FavoriteUpdateRequest;
+import com.hongik.grad.stocks.application.KrxQuoteService;
+import com.hongik.grad.stocks.dto.KrxQuote;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,17 +24,32 @@ public class FavoriteService {
 
   private final FavoriteRepository favoriteRepository;
   private final FolderRepository folderRepository;
+  private final KrxQuoteService krxQuoteService;
 
-  public FavoriteService(FavoriteRepository favoriteRepository, FolderRepository folderRepository) {
+  public FavoriteService(
+      FavoriteRepository favoriteRepository,
+      FolderRepository folderRepository,
+      KrxQuoteService krxQuoteService) {
     this.favoriteRepository = favoriteRepository;
     this.folderRepository = folderRepository;
+    this.krxQuoteService = krxQuoteService;
   }
 
-  @Transactional(readOnly = true)
   public List<FavoriteItemResponse> list(UUID userId, Long folderId) {
     verifyFolderOwnership(userId, folderId);
-    return favoriteRepository.findByFolderIdOrderByAddedAtDesc(folderId).stream()
-        .map(FavoriteItemResponse::from)
+    List<Favorite> favorites = favoriteRepository.findByFolderIdOrderByAddedAtDesc(folderId);
+    if (favorites.isEmpty()) {
+      return List.of();
+    }
+    List<String> tickers = favorites.stream().map(Favorite::getTicker).toList();
+    Map<String, KrxQuote> quoteMap =
+        krxQuoteService.getQuotes(tickers).stream()
+            .collect(Collectors.toMap(KrxQuote::ticker, Function.identity(), (a, b) -> a));
+    return favorites.stream()
+        .map(
+            fav ->
+                FavoriteItemResponse.from(
+                    fav, quoteMap.getOrDefault(fav.getTicker(), KrxQuote.empty(fav.getTicker()))))
         .toList();
   }
 
