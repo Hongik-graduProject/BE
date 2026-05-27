@@ -35,6 +35,10 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
 
+dart:
+  api:
+    key: ${DART_API_KEY:}
+
 krx:
   api:
     base-url: ${KRX_API_BASE_URL:}
