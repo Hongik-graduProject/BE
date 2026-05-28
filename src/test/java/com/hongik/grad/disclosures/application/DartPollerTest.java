@@ -35,8 +35,7 @@ class DartPollerTest {
   @Mock private DisclosureService disclosureService;
   @Mock private DisclosureRepository disclosureRepository;
 
-  private final Clock clock =
-      Clock.fixed(Instant.parse("2025-05-27T00:00:00Z"), ZoneOffset.UTC);
+  private final Clock clock = Clock.fixed(Instant.parse("2025-05-27T00:00:00Z"), ZoneOffset.UTC);
 
   private DartPoller dartPoller;
 
@@ -83,9 +82,12 @@ class DartPollerTest {
     when(disclosureRepository.findTopByOrderByFiledAtDesc()).thenReturn(Optional.empty());
     List<DartListItem> items =
         List.of(
-            new DartListItem("00126380", "삼성전자", "005930", "사업보고서", "20250520000001", "삼성전자", "20250520", ""),
-            new DartListItem("00126380", "삼성전자", "005930", "분기보고서", "20250520000002", "삼성전자", "20250520", ""),
-            new DartListItem("00126380", "삼성전자", "005930", "주요사항보고서", "20250520000003", "삼성전자", "20250520", ""));
+            new DartListItem(
+                "00126380", "삼성전자", "005930", "사업보고서", "20250520000001", "삼성전자", "20250520", ""),
+            new DartListItem(
+                "00126380", "삼성전자", "005930", "분기보고서", "20250520000002", "삼성전자", "20250520", ""),
+            new DartListItem(
+                "00126380", "삼성전자", "005930", "주요사항보고서", "20250520000003", "삼성전자", "20250520", ""));
     when(dartClient.fetchDisclosures(any(), eq(100))).thenReturn(items);
     when(disclosureService.upsertBatch(items)).thenReturn(3);
 
@@ -98,8 +100,7 @@ class DartPollerTest {
   @DisplayName("DartClient 예외 발생 시 poll이 중단되지 않는다")
   void pollHandlesExceptionGracefully() {
     when(disclosureRepository.findTopByOrderByFiledAtDesc()).thenReturn(Optional.empty());
-    when(dartClient.fetchDisclosures(any(), anyInt()))
-        .thenThrow(new RuntimeException("API error"));
+    when(dartClient.fetchDisclosures(any(), anyInt())).thenThrow(new RuntimeException("API error"));
 
     dartPoller.poll();
 

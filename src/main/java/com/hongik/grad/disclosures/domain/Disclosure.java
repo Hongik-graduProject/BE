@@ -55,11 +55,7 @@ public class Disclosure {
   protected Disclosure() {}
 
   public Disclosure(
-      Stock stock,
-      String dartFilingId,
-      String title,
-      DisclosureType type,
-      OffsetDateTime filedAt) {
+      Stock stock, String dartFilingId, String title, DisclosureType type, OffsetDateTime filedAt) {
     this.stock = stock;
     this.dartFilingId = dartFilingId;
     this.title = title;

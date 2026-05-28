@@ -30,8 +30,7 @@ public class ThemeQueryService {
     return stockThemes.stream().limit(3).map(this::toStockThemeView).toList();
   }
 
-  public List<SensitivityView> findTop5SensitivityByThemeAndVersion(
-      Long themeId, String version) {
+  public List<SensitivityView> findTop5SensitivityByThemeAndVersion(Long themeId, String version) {
     List<ThemeMetricSensitivity> sensitivities =
         themeMetricSensitivityRepository.findByThemeIdAndModelVersionOrderByRankAsc(
             themeId, version);

@@ -74,8 +74,7 @@ public class DartClient {
         }
 
         if (!"000".equals(response.status())) {
-          log.warn(
-              "DART API error: status={}, message={}", response.status(), response.message());
+          log.warn("DART API error: status={}, message={}", response.status(), response.message());
           break;
         }
 

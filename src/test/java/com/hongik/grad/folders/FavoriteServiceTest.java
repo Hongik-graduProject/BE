@@ -41,8 +41,7 @@ class FavoriteServiceTest {
     given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder));
 
     Favorite fav = new Favorite(folder, "005930");
-    given(favoriteRepository.findByFolderIdOrderByAddedAtDesc(FOLDER_ID))
-        .willReturn(List.of(fav));
+    given(favoriteRepository.findByFolderIdOrderByAddedAtDesc(FOLDER_ID)).willReturn(List.of(fav));
 
     KrxQuote quote = new KrxQuote("005930", 72000, 1.5, 1000);
     given(krxQuoteService.getQuotes(List.of("005930"))).willReturn(List.of(quote));
@@ -59,8 +58,7 @@ class FavoriteServiceTest {
   void list_emptyFavorites_returnsEmptyList() {
     Folder folder = new Folder(USER_ID, "테스트", "#000000", FolderType.CUSTOM, 0);
     given(folderRepository.findById(FOLDER_ID)).willReturn(Optional.of(folder));
-    given(favoriteRepository.findByFolderIdOrderByAddedAtDesc(FOLDER_ID))
-        .willReturn(List.of());
+    given(favoriteRepository.findByFolderIdOrderByAddedAtDesc(FOLDER_ID)).willReturn(List.of());
 
     List<FavoriteItemResponse> result = favoriteService.list(USER_ID, FOLDER_ID);
 

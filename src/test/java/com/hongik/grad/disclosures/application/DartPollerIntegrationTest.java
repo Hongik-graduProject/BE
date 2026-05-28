@@ -117,9 +117,7 @@ class DartPollerIntegrationTest {
         }
         """;
     mockWebServer.enqueue(
-        new MockResponse()
-            .addHeader("Content-Type", "application/json")
-            .setBody(dartResponse));
+        new MockResponse().addHeader("Content-Type", "application/json").setBody(dartResponse));
 
     dartPoller.poll();
 
@@ -165,13 +163,9 @@ class DartPollerIntegrationTest {
         }
         """;
     mockWebServer.enqueue(
-        new MockResponse()
-            .addHeader("Content-Type", "application/json")
-            .setBody(dartResponse));
+        new MockResponse().addHeader("Content-Type", "application/json").setBody(dartResponse));
     mockWebServer.enqueue(
-        new MockResponse()
-            .addHeader("Content-Type", "application/json")
-            .setBody(dartResponse));
+        new MockResponse().addHeader("Content-Type", "application/json").setBody(dartResponse));
 
     dartPoller.poll();
     assertThat(disclosureRepository.findAll()).hasSize(1);
