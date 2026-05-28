@@ -1,0 +1,48 @@
+[
+  {
+    "ticker": "005930",
+    "predictions": [
+      {
+        "class_idx": 0,
+        "theme_name": "AI/반도체",
+        "probability": 0.85,
+        "rank": 1
+      },
+      {
+        "class_idx": 1,
+        "theme_name": "2차전지/EV",
+        "probability": 0.10,
+        "rank": 2
+      },
+      {
+        "class_idx": 2,
+        "theme_name": "바이오/헬스케어",
+        "probability": 0.05,
+        "rank": 3
+      }
+    ]
+  },
+  {
+    "ticker": "373220",
+    "predictions": [
+      {
+        "class_idx": 1,
+        "theme_name": "2차전지/EV",
+        "probability": 0.92,
+        "rank": 1
+      },
+      {
+        "class_idx": 0,
+        "theme_name": "AI/반도체",
+        "probability": 0.05,
+        "rank": 2
+      },
+      {
+        "class_idx": 2,
+        "theme_name": "바이오/헬스케어",
+        "probability": 0.03,
+        "rank": 3
+      }
+    ]
+  }
+]

@@ -1,0 +1,59 @@
+[
+  {
+    "theme_name": "AI/반도체",
+    "model_version": "v1.0",
+    "coefficients": [
+      {
+        "metric_code": "PER",
+        "beta": 0.35,
+        "abs_beta": 0.35,
+        "rank": 1,
+        "direction": "positive",
+        "r_squared": 0.72,
+        "sample_size": 150
+      },
+      {
+        "metric_code": "ROE",
+        "beta": -0.28,
+        "abs_beta": 0.28,
+        "rank": 2,
+        "direction": "negative",
+        "r_squared": 0.65,
+        "sample_size": 150
+      },
+      {
+        "metric_code": "EPS_GR",
+        "beta": 0.22,
+        "abs_beta": 0.22,
+        "rank": 3,
+        "direction": "positive",
+        "r_squared": 0.58,
+        "sample_size": 150
+      }
+    ]
+  },
+  {
+    "theme_name": "2차전지/EV",
+    "model_version": "v1.0",
+    "coefficients": [
+      {
+        "metric_code": "REV_GR",
+        "beta": 0.42,
+        "abs_beta": 0.42,
+        "rank": 1,
+        "direction": "positive",
+        "r_squared": 0.78,
+        "sample_size": 120
+      },
+      {
+        "metric_code": "DER",
+        "beta": -0.31,
+        "abs_beta": 0.31,
+        "rank": 2,
+        "direction": "negative",
+        "r_squared": 0.61,
+        "sample_size": 120
+      }
+    ]
+  }
+]
