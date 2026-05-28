@@ -1,0 +1,20 @@
+[
+  {
+    "class_idx": 0,
+    "name": "AI/반도체",
+    "description": "AI 및 반도체 관련 기업",
+    "source": "ThemeSense v1"
+  },
+  {
+    "class_idx": 1,
+    "name": "2차전지/EV",
+    "description": "2차전지 및 전기차 관련 기업",
+    "source": "ThemeSense v1"
+  },
+  {
+    "class_idx": 2,
+    "name": "바이오/헬스케어",
+    "description": "바이오 및 헬스케어 관련 기업",
+    "source": "ThemeSense v1"
+  }
+]

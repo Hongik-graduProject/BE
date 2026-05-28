@@ -73,3 +73,8 @@ logging:
 supabase:
   jwt-secret: ${SUPABASE_JWT_SECRET:replace-me-with-supabase-jwt-secret}
   audience: authenticated
+
+themesense:
+  artifacts-dir: ${THEMESENSE_ARTIFACTS_DIR:}
+  stage1-version: ${THEMESENSE_STAGE1_VERSION:themesense-stage1-v1.0}
+  stage2-version: ${THEMESENSE_STAGE2_VERSION:themesense-stage2-v1.0}
