@@ -72,9 +72,14 @@ public class ThemeIngestService {
       Theme theme =
           themeRepository
               .findByName(entry.name())
-              .orElseGet(() -> themeRepository.save(new Theme(entry.name())));
+              .orElseGet(
+                  () -> {
+                    Theme newTheme = new Theme(entry.name());
+                    newTheme.setSource(entry.source() != null ? entry.source() : "unknown");
+                    return themeRepository.save(newTheme);
+                  });
       theme.setDescription(entry.description());
-      theme.setSource(entry.source());
+      theme.setSource(entry.source() != null ? entry.source() : "unknown");
       theme.setStage1ClassIdx(entry.classIdx());
       result.put(entry.name(), theme);
     }
@@ -134,9 +139,18 @@ public class ThemeIngestService {
       }
 
       for (Stage2CoefficientJson.Coefficient c : entry.coefficients()) {
+        Optional<String> canonicalOpt = MetricCodeNormalizer.toCatalogKey(c.metricCode());
+        if (canonicalOpt.isEmpty()) {
+          log.warn(
+              "metric_code not in catalog, skipping sensitivity: theme={} code={}",
+              entry.themeName(),
+              c.metricCode());
+          continue;
+        }
+        String canonicalCode = canonicalOpt.get();
         Optional<ThemeMetricSensitivity> existing =
             sensitivityRepository.findByThemeIdAndMetricCodeAndModelVersion(
-                theme.getId(), c.metricCode(), version);
+                theme.getId(), canonicalCode, version);
         if (existing.isPresent()) {
           ThemeMetricSensitivity s = existing.get();
           s.setBeta(c.beta());
@@ -149,7 +163,7 @@ public class ThemeIngestService {
           s.setComputedAt(OffsetDateTime.now(clock));
         } else {
           ThemeMetricSensitivity s =
-              new ThemeMetricSensitivity(theme, c.metricCode(), c.beta(), c.absBeta(), c.rank());
+              new ThemeMetricSensitivity(theme, canonicalCode, c.beta(), c.absBeta(), c.rank());
           s.setDirection(Direction.fromValue(c.direction()));
           s.setRSquared(c.rSquared());
           s.setSampleSize(c.sampleSize());

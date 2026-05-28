@@ -60,8 +60,7 @@ public class DisclosureService {
       OffsetDateTime filedAt = parseFiledAt(item.rceptDt());
       DisclosureType type = mapDisclosureType(item.reportNm());
 
-      Disclosure disclosure =
-          new Disclosure(stock, item.rceptNo(), item.reportNm(), type, filedAt);
+      Disclosure disclosure = new Disclosure(stock, item.rceptNo(), item.reportNm(), type, filedAt);
       disclosureRepository.save(disclosure);
       // Consumers must use @TransactionalEventListener(phase = AFTER_COMMIT)
       // to ensure they only see committed data (this is the pattern used in PR-08).

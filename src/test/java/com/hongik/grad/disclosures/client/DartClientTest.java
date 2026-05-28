@@ -85,8 +85,7 @@ class DartClientTest {
             .setBody(body)
             .addHeader("Content-Type", "application/json"));
 
-    List<DartListItem> items =
-        dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
+    List<DartListItem> items = dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
 
     assertThat(items).hasSize(1);
     assertThat(items.get(0).corpName()).isEqualTo("삼성전자");
@@ -119,8 +118,7 @@ class DartClientTest {
             .setBody(body)
             .addHeader("Content-Type", "application/json"));
 
-    List<DartListItem> items =
-        dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
+    List<DartListItem> items = dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
 
     assertThat(items).isEmpty();
   }
@@ -146,8 +144,7 @@ class DartClientTest {
             .setBody(body)
             .addHeader("Content-Type", "application/json"));
 
-    List<DartListItem> items =
-        dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
+    List<DartListItem> items = dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
 
     assertThat(items).isEmpty();
   }
@@ -161,8 +158,7 @@ class DartClientTest {
             "",
             stockRepository);
 
-    List<DartListItem> items =
-        noKeyClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
+    List<DartListItem> items = noKeyClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
 
     assertThat(items).isEmpty();
     assertThat(mockWebServer.getRequestCount()).isZero();
@@ -212,8 +208,7 @@ class DartClientTest {
             .setBody(body)
             .addHeader("Content-Type", "application/json"));
 
-    List<DartListItem> items =
-        dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
+    List<DartListItem> items = dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
 
     assertThat(items).hasSize(1);
     assertThat(items.get(0).stockCode()).isEqualTo("005930");
@@ -251,8 +246,7 @@ class DartClientTest {
             .setBody(body)
             .addHeader("Content-Type", "application/json"));
 
-    List<DartListItem> items =
-        dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
+    List<DartListItem> items = dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
 
     assertThat(items).isEmpty();
   }
@@ -264,8 +258,7 @@ class DartClientTest {
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
 
-    List<DartListItem> items =
-        dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
+    List<DartListItem> items = dartClient.fetchDisclosures(LocalDate.of(2024, 1, 1), 100);
 
     assertThat(items).isEmpty();
   }

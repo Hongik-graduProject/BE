@@ -55,7 +55,8 @@ public class ThemeMetricSensitivity extends BaseTimeEntity {
 
   protected ThemeMetricSensitivity() {}
 
-  public ThemeMetricSensitivity(Theme theme, String metricCode, double beta, double absBeta, int rank) {
+  public ThemeMetricSensitivity(
+      Theme theme, String metricCode, double beta, double absBeta, int rank) {
     this.theme = theme;
     this.metricCode = metricCode;
     this.beta = beta;

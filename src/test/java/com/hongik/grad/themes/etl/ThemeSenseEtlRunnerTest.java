@@ -1,7 +1,6 @@
 package com.hongik.grad.themes.etl;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,8 +33,7 @@ class ThemeSenseEtlRunnerTest {
   void skipWhenNoFlag() throws Exception {
     runner.run("--other-flag");
 
-    verify(themeIngestService, never())
-        .ingest(any(), any(), any(), any(), any());
+    verify(themeIngestService, never()).ingest(any(), any(), any(), any(), any());
   }
 
   @Test
@@ -77,9 +75,12 @@ class ThemeSenseEtlRunnerTest {
 
     runner.run(
         "--etl-themesense",
-        "--artifacts-dir", dir,
-        "--stage1-version", "custom-s1",
-        "--stage2-version", "custom-s2");
+        "--artifacts-dir",
+        dir,
+        "--stage1-version",
+        "custom-s1",
+        "--stage2-version",
+        "custom-s2");
 
     verify(themeIngestService).ingest(catalog, stage1, stage2, "custom-s1", "custom-s2");
   }

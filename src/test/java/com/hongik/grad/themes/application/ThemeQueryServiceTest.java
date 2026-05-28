@@ -65,8 +65,7 @@ class ThemeQueryServiceTest {
     Theme t1 = createTheme(1L, "AI/반도체");
     StockTheme st1 = createStockTheme(t1, (short) 1, 0.85, true);
 
-    when(stockThemeRepository.findByStockTickerOrderByRankAsc("005930"))
-        .thenReturn(List.of(st1));
+    when(stockThemeRepository.findByStockTickerOrderByRankAsc("005930")).thenReturn(List.of(st1));
 
     Optional<StockThemeView> result = service.findPrimaryThemeByTicker("005930");
 
@@ -78,8 +77,7 @@ class ThemeQueryServiceTest {
   @Test
   @DisplayName("테마가 없으면 빈 Optional을 반환한다")
   void findPrimaryThemeByTicker_returnsEmptyWhenNoThemes() {
-    when(stockThemeRepository.findByStockTickerOrderByRankAsc("999999"))
-        .thenReturn(List.of());
+    when(stockThemeRepository.findByStockTickerOrderByRankAsc("999999")).thenReturn(List.of());
 
     Optional<StockThemeView> result = service.findPrimaryThemeByTicker("999999");
 
@@ -91,8 +89,7 @@ class ThemeQueryServiceTest {
   void findTop5SensitivityByThemeAndVersion_returnsOrderedSensitivities() throws Exception {
     Theme theme = createTheme(1L, "AI/반도체");
     ThemeMetricSensitivity s1 = createSensitivity(theme, "PER", 0.35, 0.35, 1, Direction.POSITIVE);
-    ThemeMetricSensitivity s2 =
-        createSensitivity(theme, "ROE", -0.28, 0.28, 2, Direction.NEGATIVE);
+    ThemeMetricSensitivity s2 = createSensitivity(theme, "ROE", -0.28, 0.28, 2, Direction.NEGATIVE);
 
     when(themeMetricSensitivityRepository.findByThemeIdAndModelVersionOrderByRankAsc(1L, "v1.0"))
         .thenReturn(List.of(s1, s2));
