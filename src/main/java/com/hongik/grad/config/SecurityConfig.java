@@ -45,6 +45,11 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
+                    // Dev token mint endpoint must be reachable unauthenticated. Safe in prod: its
+                    // handler (DevTokenController) is @Profile("local") only, so /dev/** 404s in
+                    // prod regardless of this permitAll.
+                    .requestMatchers("/dev/**")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(supabaseJwtFilter, UsernamePasswordAuthenticationFilter.class)

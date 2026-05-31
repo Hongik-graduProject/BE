@@ -8,37 +8,36 @@ import java.time.OffsetDateTime;
 public record FavoriteItemResponse(
     Long id,
     String ticker,
-    String memo,
-    @JsonProperty("avg_price") Long avgPrice,
+    String name,
     @JsonProperty("current_price") Long currentPrice,
     @JsonProperty("change_rate") Double changeRate,
     @JsonProperty("change_amount") Long changeAmount,
+    String memo,
+    @JsonProperty("avg_price") Long avgPrice,
+    @JsonProperty("unread_disclosure_count") int unreadDisclosureCount,
     @JsonProperty("analysis_summary") AnalysisSummary analysisSummary,
     @JsonProperty("added_at") OffsetDateTime addedAt) {
 
-  public static FavoriteItemResponse from(Favorite favorite) {
+  /**
+   * Full §3-6 list item; cross-domain fields (name/unread/analysis_summary) supplied by service.
+   */
+  public static FavoriteItemResponse forList(
+      Favorite favorite,
+      String name,
+      KrxQuote quote,
+      int unreadDisclosureCount,
+      AnalysisSummary analysisSummary) {
     return new FavoriteItemResponse(
         favorite.getId(),
         favorite.getTicker(),
-        favorite.getMemo(),
-        favorite.getAvgPrice(),
-        null,
-        null,
-        null,
-        new AnalysisSummary(false, "테마 분류 대기 중"),
-        favorite.getAddedAt());
-  }
-
-  public static FavoriteItemResponse from(Favorite favorite, KrxQuote quote) {
-    return new FavoriteItemResponse(
-        favorite.getId(),
-        favorite.getTicker(),
-        favorite.getMemo(),
-        favorite.getAvgPrice(),
+        name,
         quote.currentPrice(),
         quote.changeRate(),
         quote.changeAmount(),
-        new AnalysisSummary(false, "테마 분류 대기 중"),
+        favorite.getMemo(),
+        favorite.getAvgPrice(),
+        unreadDisclosureCount,
+        analysisSummary,
         favorite.getAddedAt());
   }
 }

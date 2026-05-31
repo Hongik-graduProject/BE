@@ -10,12 +10,12 @@ public record FolderListResponse(
     String name,
     String color,
     FolderType type,
-    int displayOrder,
+    @JsonProperty("order") int displayOrder,
     OffsetDateTime createdAt,
     @JsonProperty("item_count") int itemCount,
     @JsonProperty("unread_disclosure_count") int unreadDisclosureCount) {
 
-  public static FolderListResponse from(Folder folder, int itemCount) {
+  public static FolderListResponse from(Folder folder, int itemCount, int unreadDisclosureCount) {
     return new FolderListResponse(
         folder.getId(),
         folder.getName(),
@@ -24,6 +24,6 @@ public record FolderListResponse(
         folder.getDisplayOrder(),
         folder.getCreatedAt(),
         itemCount,
-        0);
+        unreadDisclosureCount);
   }
 }

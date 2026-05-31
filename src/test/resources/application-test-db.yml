@@ -24,6 +24,10 @@ supabase:
   jwt-secret: test-secret-32-bytes-minimum-aaaaaaaa
   audience: authenticated
 
+dart:
+  poller:
+    enabled: false
+
 logging:
   level:
     root: WARN

@@ -26,6 +26,10 @@ spring:
     hikari:
       # PR-01 only: allow boot without DB until PR-02 wires Flyway
       initialization-fail-timeout: -1
+      # Supabase session pooler caps concurrent clients (~15). Keep the pool small
+      # so multiple local instances / tools don't exhaust it.
+      maximum-pool-size: ${DB_POOL_MAX:5}
+      minimum-idle: 1
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -38,6 +42,8 @@ spring:
 dart:
   api:
     key: ${DART_API_KEY:}
+  poller:
+    enabled: ${DART_POLLER_ENABLED:true}
 
 krx:
   api:
@@ -71,8 +77,14 @@ logging:
     com.hongik.grad: INFO
 
 supabase:
+  url: ${SUPABASE_URL:}
+  anon-key: ${SUPABASE_ANON_KEY:}
   jwt-secret: ${SUPABASE_JWT_SECRET:replace-me-with-supabase-jwt-secret}
   audience: authenticated
+
+firebase:
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+  project-id: ${FIREBASE_PROJECT_ID:}
 
 themesense:
   artifacts-dir: ${THEMESENSE_ARTIFACTS_DIR:}

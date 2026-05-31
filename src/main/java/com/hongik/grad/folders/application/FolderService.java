@@ -1,7 +1,12 @@
 package com.hongik.grad.folders.application;
 
+import com.hongik.grad.analysis.domain.AnalysisReport;
+import com.hongik.grad.analysis.domain.AnalysisReportRepository;
+import com.hongik.grad.analysis.domain.ReportReadStatus;
+import com.hongik.grad.analysis.domain.ReportReadStatusRepository;
 import com.hongik.grad.common.api.ErrorCode;
 import com.hongik.grad.common.exception.DomainException;
+import com.hongik.grad.folders.domain.Favorite;
 import com.hongik.grad.folders.domain.FavoriteRepository;
 import com.hongik.grad.folders.domain.Folder;
 import com.hongik.grad.folders.domain.FolderRepository;
@@ -9,10 +14,15 @@ import com.hongik.grad.folders.domain.FolderType;
 import com.hongik.grad.folders.dto.CreateFolderRequest;
 import com.hongik.grad.folders.dto.FolderListResponse;
 import com.hongik.grad.folders.dto.FolderResponse;
+import com.hongik.grad.folders.dto.FolderUpdateResponse;
 import com.hongik.grad.folders.dto.ReorderFoldersRequest;
 import com.hongik.grad.folders.dto.UpdateFolderRequest;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,17 +31,76 @@ public class FolderService {
 
   private final FolderRepository folderRepository;
   private final FavoriteRepository favoriteRepository;
+  private final AnalysisReportRepository analysisReportRepository;
+  private final ReportReadStatusRepository reportReadStatusRepository;
 
-  public FolderService(FolderRepository folderRepository, FavoriteRepository favoriteRepository) {
+  public FolderService(
+      FolderRepository folderRepository,
+      FavoriteRepository favoriteRepository,
+      AnalysisReportRepository analysisReportRepository,
+      ReportReadStatusRepository reportReadStatusRepository) {
     this.folderRepository = folderRepository;
     this.favoriteRepository = favoriteRepository;
+    this.analysisReportRepository = analysisReportRepository;
+    this.reportReadStatusRepository = reportReadStatusRepository;
   }
 
   @Transactional(readOnly = true)
   public List<FolderListResponse> list(UUID userId) {
-    return folderRepository.findByUserIdOrderByDisplayOrderAsc(userId).stream()
-        .map(f -> FolderListResponse.from(f, favoriteRepository.countByFolderId(f.getId())))
+    List<Folder> folders = folderRepository.findByUserIdOrderByDisplayOrderAsc(userId);
+    List<Favorite> favorites = favoriteRepository.findByFolderUserId(userId);
+
+    Map<Long, Integer> itemCountByFolder = new HashMap<>();
+    for (Favorite fav : favorites) {
+      itemCountByFolder.merge(fav.getFolder().getId(), 1, Integer::sum);
+    }
+
+    Map<String, Integer> unreadByTicker = unreadCountByTicker(userId, favorites);
+    Map<Long, Integer> unreadByFolder = new HashMap<>();
+    for (Favorite fav : favorites) {
+      int unread = unreadByTicker.getOrDefault(fav.getTicker(), 0);
+      if (unread > 0) {
+        unreadByFolder.merge(fav.getFolder().getId(), unread, Integer::sum);
+      }
+    }
+
+    return folders.stream()
+        .map(
+            f ->
+                FolderListResponse.from(
+                    f,
+                    itemCountByFolder.getOrDefault(f.getId(), 0),
+                    unreadByFolder.getOrDefault(f.getId(), 0)))
         .toList();
+  }
+
+  /** Per-ticker unread = analysis_reports without a report_read_status row for this user (§3-6). */
+  private Map<String, Integer> unreadCountByTicker(UUID userId, List<Favorite> favorites) {
+    List<String> tickers = favorites.stream().map(Favorite::getTicker).distinct().toList();
+    if (tickers.isEmpty()) {
+      return Map.of();
+    }
+
+    List<AnalysisReport> reports =
+        analysisReportRepository.findByStockTickerInOrderByGeneratedAtDesc(tickers);
+    if (reports.isEmpty()) {
+      return Map.of();
+    }
+
+    Set<Long> readReportIds =
+        reportReadStatusRepository
+            .findByUserIdAndReportIdIn(userId, reports.stream().map(AnalysisReport::getId).toList())
+            .stream()
+            .map(ReportReadStatus::getReportId)
+            .collect(Collectors.toSet());
+
+    Map<String, Integer> unreadByTicker = new HashMap<>();
+    for (AnalysisReport report : reports) {
+      if (!readReportIds.contains(report.getId())) {
+        unreadByTicker.merge(report.getStock().getTicker(), 1, Integer::sum);
+      }
+    }
+    return unreadByTicker;
   }
 
   @Transactional
@@ -46,7 +115,7 @@ public class FolderService {
   }
 
   @Transactional
-  public FolderResponse update(UUID userId, Long folderId, UpdateFolderRequest request) {
+  public FolderUpdateResponse update(UUID userId, Long folderId, UpdateFolderRequest request) {
     Folder folder = findOwnedFolder(userId, folderId);
     if (folder.getType() == FolderType.DEFAULT) {
       throw new DomainException(ErrorCode.FORBIDDEN, "기본 폴더는 수정할 수 없습니다");
@@ -58,7 +127,7 @@ public class FolderService {
       throw new DomainException(ErrorCode.DUPLICATE, "같은 이름의 폴더가 이미 존재합니다");
     }
     folder.update(request.name(), request.color());
-    return FolderResponse.from(folder);
+    return FolderUpdateResponse.from(folder);
   }
 
   @Transactional
