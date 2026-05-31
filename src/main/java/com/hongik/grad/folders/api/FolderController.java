@@ -5,13 +5,13 @@ import com.hongik.grad.common.api.ApiResponse;
 import com.hongik.grad.folders.application.FavoriteService;
 import com.hongik.grad.folders.application.FolderService;
 import com.hongik.grad.folders.dto.CreateFolderRequest;
-import com.hongik.grad.folders.dto.FavoriteItemResponse;
-import com.hongik.grad.folders.dto.FolderListResponse;
+import com.hongik.grad.folders.dto.FolderItemsResponse;
+import com.hongik.grad.folders.dto.FolderListWrapper;
 import com.hongik.grad.folders.dto.FolderResponse;
+import com.hongik.grad.folders.dto.FolderUpdateResponse;
 import com.hongik.grad.folders.dto.ReorderFoldersRequest;
 import com.hongik.grad.folders.dto.UpdateFolderRequest;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -45,7 +45,7 @@ public class FolderController {
   }
 
   @PatchMapping("/{folder_id}")
-  public ApiResponse<FolderResponse> update(
+  public ApiResponse<FolderUpdateResponse> update(
       @AuthenticationPrincipal AuthUser user,
       @PathVariable("folder_id") Long folderId,
       @Valid @RequestBody UpdateFolderRequest request) {
@@ -53,26 +53,26 @@ public class FolderController {
   }
 
   @DeleteMapping("/{folder_id}")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void delete(
+  public ApiResponse<Void> delete(
       @AuthenticationPrincipal AuthUser user, @PathVariable("folder_id") Long folderId) {
     folderService.delete(user.id(), folderId);
+    return ApiResponse.success(null, "폴더와 내부 관심 종목이 모두 삭제되었습니다");
   }
 
   @PutMapping("/order")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void reorder(
+  public ApiResponse<Void> reorder(
       @AuthenticationPrincipal AuthUser user, @Valid @RequestBody ReorderFoldersRequest request) {
     folderService.reorder(user.id(), request);
+    return ApiResponse.success(null, "폴더 순서가 변경되었습니다");
   }
 
   @GetMapping
-  public ApiResponse<List<FolderListResponse>> list(@AuthenticationPrincipal AuthUser user) {
-    return ApiResponse.success(folderService.list(user.id()));
+  public ApiResponse<FolderListWrapper> list(@AuthenticationPrincipal AuthUser user) {
+    return ApiResponse.success(new FolderListWrapper(folderService.list(user.id())));
   }
 
   @GetMapping("/{folder_id}/items")
-  public ApiResponse<List<FavoriteItemResponse>> listItems(
+  public ApiResponse<FolderItemsResponse> listItems(
       @AuthenticationPrincipal AuthUser user, @PathVariable("folder_id") Long folderId) {
     return ApiResponse.success(favoriteService.list(user.id(), folderId));
   }

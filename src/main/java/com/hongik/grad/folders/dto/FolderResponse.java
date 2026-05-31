@@ -1,5 +1,6 @@
 package com.hongik.grad.folders.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.hongik.grad.folders.domain.Folder;
 import com.hongik.grad.folders.domain.FolderType;
 import java.time.OffsetDateTime;
@@ -9,7 +10,7 @@ public record FolderResponse(
     String name,
     String color,
     FolderType type,
-    int displayOrder,
+    @JsonProperty("order") int displayOrder,
     OffsetDateTime createdAt) {
 
   public static FolderResponse from(Folder folder) {
