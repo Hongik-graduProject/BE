@@ -21,10 +21,9 @@ import com.hongik.grad.common.exception.DomainException;
 import com.hongik.grad.config.SecurityConfig;
 import com.hongik.grad.folders.api.FavoriteController;
 import com.hongik.grad.folders.application.FavoriteService;
-import com.hongik.grad.folders.dto.AnalysisSummary;
-import com.hongik.grad.folders.dto.FavoriteItemResponse;
+import com.hongik.grad.folders.dto.FavoriteMoveResponse;
+import com.hongik.grad.folders.dto.FavoriteUpdateResponse;
 import com.hongik.grad.support.JwtTestFactory;
-import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -58,36 +57,13 @@ class FavoriteControllerSliceTest {
   private static final String TOKEN =
       "Bearer " + JwtTestFactory.validToken(USER_ID, "test@test.com");
 
-  private FavoriteItemResponse sampleItem() {
-    return new FavoriteItemResponse(
-        10L,
-        "005930",
-        "장기보유",
-        70000L,
-        null,
-        null,
-        null,
-        new AnalysisSummary(false, "테마 분류 대기 중"),
-        OffsetDateTime.now());
-  }
-
   // ── PATCH /folders/items/{item_id} ───────────────────────────────────────
 
   @Test
-  @DisplayName("PATCH /folders/items/{item_id} - memo 수정 성공 시 200과 FavoriteItemResponse 반환")
+  @DisplayName("PATCH /folders/items/{item_id} - memo 수정 성공 시 200과 id/memo/avg_price만 반환")
   void updateFavorite_memo_success() throws Exception {
-    FavoriteItemResponse updated =
-        new FavoriteItemResponse(
-            10L,
-            "005930",
-            "단기매매",
-            70000L,
-            null,
-            null,
-            null,
-            new AnalysisSummary(false, "테마 분류 대기 중"),
-            OffsetDateTime.now());
-    given(favoriteService.update(eq(USER_ID), eq(10L), any())).willReturn(updated);
+    given(favoriteService.update(eq(USER_ID), eq(10L), any()))
+        .willReturn(new FavoriteUpdateResponse(10L, "단기매매", 70000L));
 
     mockMvc
         .perform(
@@ -97,25 +73,19 @@ class FavoriteControllerSliceTest {
                 .content(objectMapper.writeValueAsString(Map.of("memo", "단기매매"))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("success"))
+        .andExpect(jsonPath("$.data.id").value(10))
         .andExpect(jsonPath("$.data.memo").value("단기매매"))
-        .andExpect(jsonPath("$.data.ticker").value("005930"));
+        .andExpect(jsonPath("$.data.avg_price").value(70000))
+        .andExpect(jsonPath("$.data.ticker").doesNotExist())
+        .andExpect(jsonPath("$.data.name").doesNotExist())
+        .andExpect(jsonPath("$.data.analysis_summary").doesNotExist());
   }
 
   @Test
   @DisplayName("PATCH /folders/items/{item_id} - avg_price 수정 성공 시 200 반환")
   void updateFavorite_avgPrice_success() throws Exception {
-    FavoriteItemResponse updated =
-        new FavoriteItemResponse(
-            10L,
-            "005930",
-            "장기보유",
-            80000L,
-            null,
-            null,
-            null,
-            new AnalysisSummary(false, "테마 분류 대기 중"),
-            OffsetDateTime.now());
-    given(favoriteService.update(eq(USER_ID), eq(10L), any())).willReturn(updated);
+    given(favoriteService.update(eq(USER_ID), eq(10L), any()))
+        .willReturn(new FavoriteUpdateResponse(10L, "장기보유", 80000L));
 
     mockMvc
         .perform(
@@ -174,13 +144,15 @@ class FavoriteControllerSliceTest {
   // ── DELETE /folders/items/{item_id} ──────────────────────────────────────
 
   @Test
-  @DisplayName("DELETE /folders/items/{item_id} - 성공 시 204 반환")
+  @DisplayName("DELETE /folders/items/{item_id} - 성공 시 200과 message 반환")
   void deleteFavorite_success() throws Exception {
     willDoNothing().given(favoriteService).delete(eq(USER_ID), eq(10L));
 
     mockMvc
         .perform(delete("/folders/items/10").header(HttpHeaders.AUTHORIZATION, TOKEN))
-        .andExpect(status().isNoContent());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("success"))
+        .andExpect(jsonPath("$.message").value("관심 종목이 삭제되었습니다"));
   }
 
   @Test
@@ -208,9 +180,10 @@ class FavoriteControllerSliceTest {
   // ── PUT /folders/items/move ──────────────────────────────────────────────
 
   @Test
-  @DisplayName("PUT /folders/items/move - 이동 성공 시 200과 FavoriteItemResponse 반환")
+  @DisplayName("PUT /folders/items/move - 이동 성공 시 200과 item_id/from_folder_id/to_folder_id 반환")
   void moveFavorite_success() throws Exception {
-    given(favoriteService.move(eq(USER_ID), eq(10L), any())).willReturn(sampleItem());
+    given(favoriteService.move(eq(USER_ID), eq(10L), any()))
+        .willReturn(new FavoriteMoveResponse(10L, 1L, 2L));
 
     mockMvc
         .perform(
@@ -220,7 +193,11 @@ class FavoriteControllerSliceTest {
                 .content(objectMapper.writeValueAsString(Map.of("item_id", 10, "to_folder_id", 2))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("success"))
-        .andExpect(jsonPath("$.data.ticker").value("005930"));
+        .andExpect(jsonPath("$.data.item_id").value(10))
+        .andExpect(jsonPath("$.data.from_folder_id").value(1))
+        .andExpect(jsonPath("$.data.to_folder_id").value(2))
+        .andExpect(jsonPath("$.data.ticker").doesNotExist())
+        .andExpect(jsonPath("$.data.analysis_summary").doesNotExist());
   }
 
   @Test

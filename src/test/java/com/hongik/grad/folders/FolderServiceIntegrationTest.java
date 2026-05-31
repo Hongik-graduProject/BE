@@ -3,17 +3,30 @@ package com.hongik.grad.folders;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.hongik.grad.analysis.domain.AnalysisReport;
+import com.hongik.grad.analysis.domain.AnalysisReportRepository;
+import com.hongik.grad.analysis.domain.ReportReadStatus;
+import com.hongik.grad.analysis.domain.ReportReadStatusRepository;
 import com.hongik.grad.common.api.ErrorCode;
 import com.hongik.grad.common.exception.DomainException;
 import com.hongik.grad.folders.application.FolderService;
+import com.hongik.grad.folders.domain.Favorite;
+import com.hongik.grad.folders.domain.FavoriteRepository;
 import com.hongik.grad.folders.domain.Folder;
 import com.hongik.grad.folders.domain.FolderRepository;
 import com.hongik.grad.folders.domain.FolderType;
 import com.hongik.grad.folders.dto.CreateFolderRequest;
+import com.hongik.grad.folders.dto.FolderListResponse;
 import com.hongik.grad.folders.dto.FolderResponse;
+import com.hongik.grad.folders.dto.FolderUpdateResponse;
 import com.hongik.grad.folders.dto.ReorderFoldersRequest;
 import com.hongik.grad.folders.dto.UpdateFolderRequest;
+import com.hongik.grad.stocks.domain.Market;
+import com.hongik.grad.stocks.domain.Stock;
+import com.hongik.grad.stocks.domain.StockRepository;
 import com.hongik.grad.support.TestcontainersConfig;
+import com.hongik.grad.themes.domain.Theme;
+import com.hongik.grad.themes.domain.ThemeRepository;
 import com.hongik.grad.users.domain.Profile;
 import com.hongik.grad.users.domain.ProfileRepository;
 import java.util.List;
@@ -37,7 +50,12 @@ class FolderServiceIntegrationTest {
 
   @Autowired private FolderService folderService;
   @Autowired private FolderRepository folderRepository;
+  @Autowired private FavoriteRepository favoriteRepository;
   @Autowired private ProfileRepository profileRepository;
+  @Autowired private StockRepository stockRepository;
+  @Autowired private ThemeRepository themeRepository;
+  @Autowired private AnalysisReportRepository analysisReportRepository;
+  @Autowired private ReportReadStatusRepository reportReadStatusRepository;
 
   private UUID userId;
 
@@ -77,7 +95,7 @@ class FolderServiceIntegrationTest {
     FolderResponse created =
         folderService.create(userId, new CreateFolderRequest("기존이름", "#FF0000"));
 
-    FolderResponse updated =
+    FolderUpdateResponse updated =
         folderService.update(userId, created.id(), new UpdateFolderRequest("새이름", "#0000FF"));
 
     assertThat(updated.name()).isEqualTo("새이름");
@@ -150,6 +168,67 @@ class FolderServiceIntegrationTest {
     assertThat(folderRepository.findById(f1.id()).orElseThrow().getDisplayOrder()).isEqualTo(1);
     assertThat(folderRepository.findById(defaultFolder.getId()).orElseThrow().getDisplayOrder())
         .isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("list: 폴더 unread_disclosure_count = 폴더 내 종목들의 미확인 보고서 수 합")
+  void list_aggregatesUnreadDisclosureCountPerFolder() {
+    FolderResponse custom = folderService.create(userId, new CreateFolderRequest("반도체", "#4A90D9"));
+    Folder customFolder = folderRepository.findById(custom.id()).orElseThrow();
+
+    Stock samsung = stockRepository.save(new Stock("005930", "삼성전자", Market.KOSPI));
+    Stock skHynix = stockRepository.save(new Stock("000660", "SK하이닉스", Market.KOSPI));
+    Theme theme = saveTheme("HBM/메모리");
+
+    favoriteRepository.save(new Favorite(customFolder, "005930"));
+    favoriteRepository.save(new Favorite(customFolder, "000660"));
+
+    AnalysisReport samsungRead =
+        analysisReportRepository.save(new AnalysisReport(samsung, theme, "삼성 read"));
+    analysisReportRepository.save(new AnalysisReport(samsung, theme, "삼성 unread"));
+    analysisReportRepository.save(new AnalysisReport(skHynix, theme, "SK unread"));
+    reportReadStatusRepository.save(new ReportReadStatus(userId, samsungRead.getId()));
+
+    List<FolderListResponse> result = folderService.list(userId);
+
+    FolderListResponse customResult =
+        result.stream().filter(f -> f.id().equals(custom.id())).findFirst().orElseThrow();
+    assertThat(customResult.itemCount()).isEqualTo(2);
+    // samsung: 2 reports - 1 read = 1 unread; sk: 1 unread -> folder sum = 2
+    assertThat(customResult.unreadDisclosureCount()).isEqualTo(2);
+
+    FolderListResponse defaultResult =
+        result.stream().filter(f -> f.type() == FolderType.DEFAULT).findFirst().orElseThrow();
+    assertThat(defaultResult.itemCount()).isZero();
+    assertThat(defaultResult.unreadDisclosureCount()).isZero();
+  }
+
+  @Test
+  @DisplayName("list: 종목 보고서가 모두 읽음이면 unread_disclosure_count = 0")
+  void list_allReportsRead_unreadZero() {
+    FolderResponse custom = folderService.create(userId, new CreateFolderRequest("테크", "#FF0000"));
+    Folder customFolder = folderRepository.findById(custom.id()).orElseThrow();
+
+    Stock samsung = stockRepository.save(new Stock("005930", "삼성전자", Market.KOSPI));
+    Theme theme = saveTheme("HBM/메모리");
+    favoriteRepository.save(new Favorite(customFolder, "005930"));
+
+    AnalysisReport report =
+        analysisReportRepository.save(new AnalysisReport(samsung, theme, "삼성 read"));
+    reportReadStatusRepository.save(new ReportReadStatus(userId, report.getId()));
+
+    List<FolderListResponse> result = folderService.list(userId);
+
+    FolderListResponse customResult =
+        result.stream().filter(f -> f.id().equals(custom.id())).findFirst().orElseThrow();
+    assertThat(customResult.itemCount()).isEqualTo(1);
+    assertThat(customResult.unreadDisclosureCount()).isZero();
+  }
+
+  private Theme saveTheme(String name) {
+    Theme theme = new Theme(name);
+    theme.setSource("test");
+    return themeRepository.save(theme);
   }
 
   @Test
