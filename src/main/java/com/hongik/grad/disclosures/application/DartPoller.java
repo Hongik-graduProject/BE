@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -36,7 +35,6 @@ public class DartPoller {
     this.clock = clock;
   }
 
-  @Scheduled(fixedDelay = 60_000)
   public void poll() {
     try {
       LocalDate since = resolveStartDate();

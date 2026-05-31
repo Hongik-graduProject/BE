@@ -38,6 +38,8 @@ spring:
 dart:
   api:
     key: ${DART_API_KEY:}
+  poller:
+    enabled: ${DART_POLLER_ENABLED:true}
 
 krx:
   api:
@@ -73,6 +75,10 @@ logging:
 supabase:
   jwt-secret: ${SUPABASE_JWT_SECRET:replace-me-with-supabase-jwt-secret}
   audience: authenticated
+
+firebase:
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+  project-id: ${FIREBASE_PROJECT_ID:}
 
 themesense:
   artifacts-dir: ${THEMESENSE_ARTIFACTS_DIR:}
