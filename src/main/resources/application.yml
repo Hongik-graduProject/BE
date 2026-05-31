@@ -26,6 +26,10 @@ spring:
     hikari:
       # PR-01 only: allow boot without DB until PR-02 wires Flyway
       initialization-fail-timeout: -1
+      # Supabase session pooler caps concurrent clients (~15). Keep the pool small
+      # so multiple local instances / tools don't exhaust it.
+      maximum-pool-size: ${DB_POOL_MAX:5}
+      minimum-idle: 1
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -73,6 +77,8 @@ logging:
     com.hongik.grad: INFO
 
 supabase:
+  url: ${SUPABASE_URL:}
+  anon-key: ${SUPABASE_ANON_KEY:}
   jwt-secret: ${SUPABASE_JWT_SECRET:replace-me-with-supabase-jwt-secret}
   audience: authenticated
 
