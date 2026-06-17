@@ -71,6 +71,7 @@ class NotificationControllerSliceTest {
             "005930",
             "삼성전자",
             501L,
+            null,
             false,
             OffsetDateTime.now());
     NotificationListResponse response =
