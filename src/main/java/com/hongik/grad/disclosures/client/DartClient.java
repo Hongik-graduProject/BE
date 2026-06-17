@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.hongik.grad.disclosures.client.dto.DartListItem;
 import com.hongik.grad.stocks.domain.StockRepository;
+import io.netty.channel.ChannelOption;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -11,14 +15,17 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import javax.net.ssl.SSLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.netty.http.client.HttpClient;
 import reactor.util.retry.Retry;
 
 @Component
@@ -38,9 +45,40 @@ public class DartClient {
       @Value("${dart.api.key:}") String apiKey,
       @Value("${dart.api.base-url:" + DEFAULT_BASE_URL + "}") String baseUrl,
       StockRepository stockRepository) {
-    this.webClient = webClientBuilder.baseUrl(baseUrl).build();
+    // opendart.fss.or.kr rejects the JDK TLSv1.3 ClientHello (protocol_version) and only offers
+    // DHE-RSA ciphers on TLSv1.2. Netty's default cipher list is ECDHE-only, so we must pin
+    // TLSv1.2 + the DHE-RSA suites the server actually negotiates (verified via a JDK probe).
+    HttpClient httpClient =
+        HttpClient.create()
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+            .responseTimeout(Duration.ofSeconds(10))
+            .secure(spec -> spec.sslContext(dartSslContext()));
+    this.webClient =
+        webClientBuilder
+            .baseUrl(baseUrl)
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
+            .build();
     this.apiKey = apiKey;
     this.stockRepository = stockRepository;
+  }
+
+  private static SslContext dartSslContext() {
+    try {
+      return SslContextBuilder.forClient()
+          .protocols("TLSv1.2")
+          .ciphers(
+              List.of(
+                  "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+                  "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
+                  "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
+                  "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
+                  "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                  "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"),
+              SupportedCipherSuiteFilter.INSTANCE)
+          .build();
+    } catch (SSLException ex) {
+      throw new IllegalStateException("Failed to build DART SSL context", ex);
+    }
   }
 
   DartClient(WebClient webClient, String apiKey, StockRepository stockRepository) {

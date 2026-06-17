@@ -9,7 +9,8 @@ import java.util.Locale;
  * accepts. v3 ships a single kind; new kinds extend the enum and the CHECK constraint.
  */
 public enum NotificationType {
-  DISCLOSURE_REPORT;
+  DISCLOSURE_REPORT,
+  NEW_DISCLOSURE;
 
   /** JPA converter mapping enum names ↔ lowercase DB values. */
   @Converter(autoApply = false)

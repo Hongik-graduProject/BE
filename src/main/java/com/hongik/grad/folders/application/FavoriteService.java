@@ -157,6 +157,22 @@ public class FavoriteService {
     return value == null ? null : value.doubleValue();
   }
 
+  /** §3-7 POST /folders/items — 종목을 폴더에 즐겨찾기로 등록. */
+  @Transactional
+  public com.hongik.grad.folders.dto.FavoriteAddResponse add(
+      UUID userId, Long folderId, String ticker) {
+    Folder folder = verifyFolderOwnership(userId, folderId);
+    if (!stockRepository.existsById(ticker)) {
+      throw new DomainException(ErrorCode.NOT_FOUND, "종목을 찾을 수 없습니다: " + ticker);
+    }
+    if (favoriteRepository.existsByFolderIdAndTicker(folderId, ticker)) {
+      throw new DomainException(ErrorCode.DUPLICATE, "이미 폴더에 등록된 종목입니다");
+    }
+    Favorite saved = favoriteRepository.save(new Favorite(folder, ticker));
+    return new com.hongik.grad.folders.dto.FavoriteAddResponse(
+        saved.getId(), folder.getId(), saved.getTicker(), saved.getAddedAt());
+  }
+
   @Transactional
   public FavoriteUpdateResponse update(UUID userId, Long itemId, FavoriteUpdateRequest request) {
     Favorite favorite = findOwnedFavorite(userId, itemId);

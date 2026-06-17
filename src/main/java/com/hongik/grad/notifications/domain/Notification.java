@@ -43,6 +43,9 @@ public class Notification {
   @Column(name = "report_id")
   private Long reportId;
 
+  @Column(name = "disclosure_id")
+  private Long disclosureId;
+
   @Column(name = "is_read", nullable = false)
   private boolean isRead;
 
@@ -61,6 +64,23 @@ public class Notification {
     this.ticker = ticker;
     this.reportId = reportId;
     this.isRead = false;
+  }
+
+  /**
+   * New-disclosure notification (analysis-independent). Sets {@code disclosure_id} only; {@code
+   * report_id} stays null — the two links are mutually exclusive.
+   */
+  public static Notification forDisclosure(
+      UUID userId, String title, String body, String ticker, Long disclosureId) {
+    Notification n = new Notification();
+    n.userId = userId;
+    n.type = NotificationType.NEW_DISCLOSURE;
+    n.title = title;
+    n.body = body;
+    n.ticker = ticker;
+    n.disclosureId = disclosureId;
+    n.isRead = false;
+    return n;
   }
 
   public void markRead() {
@@ -93,6 +113,10 @@ public class Notification {
 
   public Long getReportId() {
     return reportId;
+  }
+
+  public Long getDisclosureId() {
+    return disclosureId;
   }
 
   public boolean isRead() {

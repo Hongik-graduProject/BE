@@ -2,6 +2,9 @@ package com.hongik.grad.e2e;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
@@ -22,6 +25,7 @@ import com.hongik.grad.notifications.application.FcmSender;
 import com.hongik.grad.notifications.domain.FcmToken;
 import com.hongik.grad.notifications.domain.FcmTokenRepository;
 import com.hongik.grad.notifications.domain.NotificationRepository;
+import com.hongik.grad.notifications.domain.NotificationType;
 import com.hongik.grad.notifications.domain.Platform;
 import com.hongik.grad.stocks.domain.FinancialStatement;
 import com.hongik.grad.stocks.domain.FinancialStatementRepository;
@@ -194,11 +198,12 @@ class AnalysisGoldenPathE2ETest {
         .pollInterval(Duration.ofMillis(300))
         .until(() -> !analysisReportRepository.findAll().isEmpty());
 
-    // AFTER_COMMIT chain: ReportCreatedEvent → notifications fan-out.
+    // Two AFTER_COMMIT fan-outs land for this disclosure: the new-disclosure notification
+    // (DisclosureCreatedEvent) and the report notification (ReportCreatedEvent).
     await()
         .atMost(Duration.ofSeconds(30))
         .pollInterval(Duration.ofMillis(300))
-        .until(() -> notificationRepository.count() >= 1);
+        .until(() -> notificationRepository.count() >= 2);
 
     Long reportId =
         transactionTemplate.execute(
@@ -209,14 +214,29 @@ class AnalysisGoldenPathE2ETest {
               return report.getId();
             });
 
+    // Both notifications belong to the favoriting user and are unread: the report notification
+    // (report_id set, disclosure_id null) coexists with the new-disclosure notification
+    // (disclosure_id set, report_id null).
     assertThat(notificationRepository.findAll())
-        .singleElement()
-        .satisfies(
+        .hasSize(2)
+        .allSatisfy(
             n -> {
               assertThat(n.getUserId()).isEqualTo(userId);
               assertThat(n.getTicker()).isEqualTo(TICKER);
-              assertThat(n.getReportId()).isEqualTo(reportId);
               assertThat(n.isRead()).isFalse();
+            });
+    assertThat(notificationRepository.findAll())
+        .anySatisfy(
+            n -> {
+              assertThat(n.getType()).isEqualTo(NotificationType.DISCLOSURE_REPORT);
+              assertThat(n.getReportId()).isEqualTo(reportId);
+              assertThat(n.getDisclosureId()).isNull();
+            })
+        .anySatisfy(
+            n -> {
+              assertThat(n.getType()).isEqualTo(NotificationType.NEW_DISCLOSURE);
+              assertThat(n.getDisclosureId()).isNotNull();
+              assertThat(n.getReportId()).isNull();
             });
 
     verify(fcmSender, atLeastOnce()).send(anyString(), anyString(), anyString(), any(Map.class));
@@ -233,13 +253,15 @@ class AnalysisGoldenPathE2ETest {
         .andExpect(jsonPath("$.data.metric_contributions").isArray())
         .andExpect(jsonPath("$.data.is_read").value(true));
 
-    // Notification list reflects one unread→read entry with the §6-1 unread_count key.
+    // Notification list returns both fan-out entries (report + new-disclosure) with the §6-1
+    // unread_count key; report_id is asserted order-independently.
     mockMvc
         .perform(get("/notifications").header(HttpHeaders.AUTHORIZATION, token))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.unread_count").isNumber())
-        .andExpect(jsonPath("$.data.notifications[0].ticker").value(TICKER))
-        .andExpect(jsonPath("$.data.notifications[0].report_id").value(reportId.intValue()));
+        .andExpect(jsonPath("$.data.notifications.length()").value(2))
+        .andExpect(jsonPath("$.data.notifications[*].ticker", everyItem(equalTo(TICKER))))
+        .andExpect(jsonPath("$.data.notifications[*].report_id", hasItem(reportId.intValue())));
   }
 
   private String dartListResponse() {

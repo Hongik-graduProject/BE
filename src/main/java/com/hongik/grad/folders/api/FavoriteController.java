@@ -3,18 +3,23 @@ package com.hongik.grad.folders.api;
 import com.hongik.grad.auth.principal.AuthUser;
 import com.hongik.grad.common.api.ApiResponse;
 import com.hongik.grad.folders.application.FavoriteService;
+import com.hongik.grad.folders.dto.FavoriteAddRequest;
+import com.hongik.grad.folders.dto.FavoriteAddResponse;
 import com.hongik.grad.folders.dto.FavoriteMoveRequest;
 import com.hongik.grad.folders.dto.FavoriteMoveResponse;
 import com.hongik.grad.folders.dto.FavoriteUpdateRequest;
 import com.hongik.grad.folders.dto.FavoriteUpdateResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -25,6 +30,14 @@ public class FavoriteController {
 
   public FavoriteController(FavoriteService favoriteService) {
     this.favoriteService = favoriteService;
+  }
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  public ApiResponse<FavoriteAddResponse> add(
+      @AuthenticationPrincipal AuthUser user, @Valid @RequestBody FavoriteAddRequest request) {
+    return ApiResponse.success(
+        favoriteService.add(user.id(), request.folderId(), request.ticker()));
   }
 
   @PatchMapping("/{item_id}")

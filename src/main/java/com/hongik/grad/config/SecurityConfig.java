@@ -6,6 +6,7 @@ import com.hongik.grad.auth.handler.JsonAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -36,6 +37,10 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.csrf(csrf -> csrf.disable())
+        // Wire the CorsConfigurationSource bean into the security chain so CORS headers are present
+        // on security-rejected responses (401/403) too — otherwise the browser masks them as opaque
+        // network errors and the real auth failure is invisible to the client.
+        .cors(Customizer.withDefaults())
         .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
@@ -44,6 +49,13 @@ public class SecurityConfig {
                     .requestMatchers("/actuator/health", "/actuator/health/**")
                     .permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                    .permitAll()
+                    // Public auth flows proxied to Supabase GoTrue. logout + account stay
+                    // authenticated (they need the caller's Bearer token / principal).
+                    .requestMatchers(
+                        HttpMethod.POST, "/auth/signup", "/auth/login", "/auth/refresh")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/auth/check-email")
                     .permitAll()
                     // Dev token mint endpoint must be reachable unauthenticated. Safe in prod: its
                     // handler (DevTokenController) is @Profile("local") only, so /dev/** 404s in

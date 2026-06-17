@@ -99,6 +99,50 @@ public class NotificationService {
     return title + " 분석 보고서가 생성되었습니다";
   }
 
+  /**
+   * Fans a freshly committed disclosure out to every user that favorited its ticker, independently
+   * of any analysis. Mirrors {@link #fanOutReportCreated}: one notification row per user (type
+   * {@code NEW_DISCLOSURE}, {@code disclosure_id} set, {@code report_id} null) plus a best-effort
+   * FCM push per device.
+   */
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void fanOutDisclosureCreated(Long disclosureId, String ticker, String disclosureTitle) {
+    List<UUID> userIds = favoriteRepository.findDistinctUserIdsByTicker(ticker);
+    if (userIds.isEmpty()) {
+      log.debug(
+          "No favorites for ticker={} — skip fan-out for disclosure_id={}", ticker, disclosureId);
+      return;
+    }
+
+    String stockName = stockRepository.findById(ticker).map(Stock::getName).orElse(ticker);
+    String title = "[" + stockName + "] 새 공시";
+    String body = disclosureTitle;
+    Map<String, String> data =
+        Map.of(
+            "type",
+            NotificationType.NEW_DISCLOSURE.name().toLowerCase(Locale.ROOT),
+            "disclosure_id",
+            String.valueOf(disclosureId),
+            "ticker",
+            ticker);
+
+    List<Notification> notifications =
+        userIds.stream()
+            .map(userId -> Notification.forDisclosure(userId, title, body, ticker, disclosureId))
+            .toList();
+    notificationRepository.saveAll(notifications);
+
+    List<FcmToken> tokens = fcmTokenRepository.findByUserIdIn(userIds);
+    for (FcmToken token : tokens) {
+      fcmSender.send(token.getDeviceToken(), title, body, data);
+    }
+    log.info(
+        "Fanned out disclosure_id={} ticker={} to {} user(s).",
+        disclosureId,
+        ticker,
+        userIds.size());
+  }
+
   /** §6-1 — paginated list (1-based) with filters and the user's total unread count. */
   @Transactional(readOnly = true)
   public NotificationListResponse list(
@@ -195,6 +239,7 @@ public class NotificationService {
         n.getTicker(),
         stockName,
         n.getReportId(),
+        n.getDisclosureId(),
         n.isRead(),
         n.getCreatedAt());
   }

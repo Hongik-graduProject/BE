@@ -12,5 +12,6 @@ public record NotificationItemResponse(
     @JsonProperty("ticker") String ticker,
     @JsonProperty("stock_name") String stockName,
     @JsonProperty("report_id") Long reportId,
+    @JsonProperty("disclosure_id") Long disclosureId,
     @JsonProperty("is_read") boolean isRead,
     @JsonProperty("created_at") OffsetDateTime createdAt) {}

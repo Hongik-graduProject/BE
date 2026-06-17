@@ -23,4 +23,9 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
   boolean existsByFolderIdAndTicker(Long folderId, String ticker);
 
   boolean existsByFolderIdAndTickerAndIdNot(Long folderId, String ticker, Long excludeId);
+
+  @Query(
+      "SELECT COUNT(f) > 0 FROM Favorite f "
+          + "WHERE f.folder.userId = :userId AND f.ticker = :ticker")
+  boolean existsByUserIdAndTicker(@Param("userId") UUID userId, @Param("ticker") String ticker);
 }
