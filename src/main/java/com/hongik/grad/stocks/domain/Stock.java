@@ -33,6 +33,9 @@ public class Stock extends BaseTimeEntity {
   @Column(name = "listed_at")
   private LocalDate listedAt;
 
+  @Column(name = "corp_code", length = 8)
+  private String corpCode;
+
   protected Stock() {}
 
   public Stock(String ticker, String name, Market market) {
@@ -63,5 +66,13 @@ public class Stock extends BaseTimeEntity {
 
   public LocalDate getListedAt() {
     return listedAt;
+  }
+
+  public String getCorpCode() {
+    return corpCode;
+  }
+
+  public void assignCorpCode(String corpCode) {
+    this.corpCode = corpCode;
   }
 }
