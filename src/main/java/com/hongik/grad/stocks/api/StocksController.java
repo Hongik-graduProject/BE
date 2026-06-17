@@ -7,6 +7,7 @@ import com.hongik.grad.stocks.application.StockQueryService;
 import com.hongik.grad.stocks.dto.RecentSearchAddRequest;
 import com.hongik.grad.stocks.dto.RecentSearchResponse;
 import com.hongik.grad.stocks.dto.StockAutocompleteResponse;
+import com.hongik.grad.stocks.dto.StockDailyPriceResponse;
 import com.hongik.grad.stocks.dto.StockDetailResponse;
 import com.hongik.grad.stocks.dto.StockDisclosuresResponse;
 import com.hongik.grad.stocks.dto.StockFinanceResponse;
@@ -89,6 +90,13 @@ public class StocksController {
   @GetMapping("/{ticker}/finance")
   public ApiResponse<StockFinanceResponse> finance(@PathVariable("ticker") String ticker) {
     return ApiResponse.success(stockQueryService.finance(ticker));
+  }
+
+  @GetMapping("/{ticker}/prices")
+  public ApiResponse<StockDailyPriceResponse> prices(
+      @PathVariable("ticker") String ticker,
+      @RequestParam(value = "days", defaultValue = "30") int days) {
+    return ApiResponse.success(stockQueryService.prices(ticker, days));
   }
 
   @GetMapping("/{ticker}/disclosures")

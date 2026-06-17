@@ -13,4 +13,9 @@ public interface FinancialStatementRepository extends JpaRepository<FinancialSta
 
   Optional<FinancialStatement> findByStockTickerAndPeriodTypeAndPeriod(
       String ticker, PeriodType periodType, String period);
+
+  boolean existsByStockTickerAndPeriodTypeAndPeriodAndSjDiv(
+      String ticker, PeriodType periodType, String period, String sjDiv);
+
+  long countByStockTicker(String ticker);
 }

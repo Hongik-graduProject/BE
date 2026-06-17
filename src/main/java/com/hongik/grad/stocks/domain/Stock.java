@@ -75,4 +75,8 @@ public class Stock extends BaseTimeEntity {
   public void assignCorpCode(String corpCode) {
     this.corpCode = corpCode;
   }
+
+  public void assignDescription(String description) {
+    this.description = description;
+  }
 }
