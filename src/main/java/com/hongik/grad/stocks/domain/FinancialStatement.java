@@ -151,4 +151,25 @@ public class FinancialStatement {
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
   }
+
+  /** DART fnlttSinglAcntAll 응답을 한 번에 흡수. null 인자는 변경하지 않는다. */
+  public void applyDartFinance(
+      Long revenue,
+      Long costOfRevenue,
+      Long grossProfit,
+      Long operatingProfit,
+      Long netIncome,
+      Long totalAssets,
+      Long totalLiabilities,
+      Long totalEquity) {
+    if (revenue != null) this.revenue = revenue;
+    if (costOfRevenue != null) this.costOfRevenue = costOfRevenue;
+    if (grossProfit != null) this.grossProfit = grossProfit;
+    if (operatingProfit != null) this.operatingProfit = operatingProfit;
+    if (netIncome != null) this.netIncome = netIncome;
+    if (totalAssets != null) this.totalAssets = totalAssets;
+    if (totalLiabilities != null) this.totalLiabilities = totalLiabilities;
+    if (totalEquity != null) this.totalEquity = totalEquity;
+    this.dataSource = "DART";
+  }
 }
