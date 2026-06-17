@@ -3,9 +3,15 @@ package com.hongik.grad.stocks.application;
 import com.hongik.grad.analysis.dto.PaginationMeta;
 import com.hongik.grad.common.api.ErrorCode;
 import com.hongik.grad.common.exception.DomainException;
+import com.hongik.grad.disclosures.client.DartCompanyClient;
+import com.hongik.grad.disclosures.client.DartCompanyClient.CompanyInfo;
 import com.hongik.grad.disclosures.domain.Disclosure;
 import com.hongik.grad.disclosures.domain.DisclosureRepository;
 import com.hongik.grad.folders.domain.FavoriteRepository;
+import com.hongik.grad.stocks.client.NaverDailyPriceClient;
+import com.hongik.grad.stocks.client.NaverDailyPriceClient.DailyPrice;
+import com.hongik.grad.stocks.dto.StockDailyPriceItem;
+import com.hongik.grad.stocks.dto.StockDailyPriceResponse;
 import com.hongik.grad.stocks.domain.FinancialStatement;
 import com.hongik.grad.stocks.domain.FinancialStatementRepository;
 import com.hongik.grad.stocks.domain.Stock;
@@ -51,7 +57,10 @@ public class StockQueryService {
   private final DisclosureRepository disclosureRepository;
   private final StockNewsFetchService stockNewsFetchService;
   private final FinancialStatementFetchService financialStatementFetchService;
+  private final NaverDailyPriceClient naverDailyPriceClient;
+  private final DartCompanyClient dartCompanyClient;
 
+  @SuppressWarnings("checkstyle:ParameterNumber")
   public StockQueryService(
       StockRepository stockRepository,
       FavoriteRepository favoriteRepository,
@@ -60,7 +69,9 @@ public class StockQueryService {
       FinancialStatementRepository financialStatementRepository,
       DisclosureRepository disclosureRepository,
       StockNewsFetchService stockNewsFetchService,
-      FinancialStatementFetchService financialStatementFetchService) {
+      FinancialStatementFetchService financialStatementFetchService,
+      NaverDailyPriceClient naverDailyPriceClient,
+      DartCompanyClient dartCompanyClient) {
     this.stockRepository = stockRepository;
     this.favoriteRepository = favoriteRepository;
     this.krxQuoteService = krxQuoteService;
@@ -69,6 +80,26 @@ public class StockQueryService {
     this.disclosureRepository = disclosureRepository;
     this.stockNewsFetchService = stockNewsFetchService;
     this.financialStatementFetchService = financialStatementFetchService;
+    this.naverDailyPriceClient = naverDailyPriceClient;
+    this.dartCompanyClient = dartCompanyClient;
+  }
+
+  /** §4-11 GET /stocks/{ticker}/prices — 일별 시세. days≈10단위 페이지로 fetch. */
+  public StockDailyPriceResponse prices(String ticker, int days) {
+    if (!stockRepository.existsById(ticker)) {
+      throw new DomainException(ErrorCode.NOT_FOUND, "종목을 찾을 수 없습니다");
+    }
+    int pages = Math.max(1, (int) Math.ceil(days / 10.0));
+    List<DailyPrice> rows = naverDailyPriceClient.fetch(ticker, pages);
+    List<StockDailyPriceItem> items =
+        rows.stream()
+            .limit(days)
+            .map(
+                r ->
+                    new StockDailyPriceItem(
+                        r.date(), r.close(), r.change(), r.open(), r.high(), r.low(), r.volume()))
+            .toList();
+    return new StockDailyPriceResponse(items);
   }
 
   /** §4-8 GET /stocks/{ticker}/news — 네이버 금융 lazy 크롤링 후 최신 20건. */
@@ -118,18 +149,39 @@ public class StockQueryService {
                     new FinanceItem(
                         f.getPeriodType().name(),
                         f.getPeriod(),
+                        f.getSjDiv(),
+                        f.getFsDiv(),
                         f.getRevenue(),
                         f.getCostOfRevenue(),
                         f.getGrossProfit(),
+                        f.getSga(),
                         f.getOperatingProfit(),
+                        f.getNonOperatingIncome(),
+                        f.getNonOperatingExpense(),
+                        f.getPretaxIncome(),
+                        f.getTaxExpense(),
                         f.getNetIncome(),
+                        f.getControllingNetIncome(),
+                        f.getNoncontrollingNetIncome(),
+                        f.getCurrentAssets(),
+                        f.getNonCurrentAssets(),
                         f.getTotalAssets(),
+                        f.getCurrentLiabilities(),
+                        f.getNonCurrentLiabilities(),
                         f.getTotalLiabilities(),
+                        f.getCapitalStock(),
+                        f.getRetainedEarnings(),
                         f.getTotalEquity(),
+                        f.getOperatingCashFlow(),
+                        f.getInvestingCashFlow(),
+                        f.getFinancingCashFlow(),
+                        f.getEndingCash(),
                         f.getPer(),
                         f.getPbr(),
                         f.getEps(),
-                        f.getDividendYield()))
+                        f.getDividendYield(),
+                        f.getRoe(),
+                        f.getRoa()))
             .toList());
   }
 
@@ -197,6 +249,19 @@ public class StockQueryService {
         stockRepository
             .findById(ticker)
             .orElseThrow(() -> new DomainException(ErrorCode.NOT_FOUND, "종목을 찾을 수 없습니다"));
+    // description이 비어있으면 DART 회사기본정보로 lazy 채움 (한 번만 호출).
+    if ((stock.getDescription() == null || stock.getDescription().isBlank())
+        && stock.getCorpCode() != null
+        && !stock.getCorpCode().isBlank()) {
+      try {
+        CompanyInfo info = dartCompanyClient.fetch(stock.getCorpCode());
+        if (!info.isEmpty()) {
+          String desc = buildDescription(stock, info);
+          stockRepository.findById(ticker).ifPresent(s -> s.assignDescription(desc));
+        }
+      } catch (Exception ignored) {
+      }
+    }
     KrxQuote quote = krxQuoteService.getQuote(ticker);
     boolean isFavorite =
         userId != null && favoriteRepository.existsByUserIdAndTicker(userId, ticker);
@@ -211,6 +276,19 @@ public class StockQueryService {
         quote == null ? null : quote.changeRate(),
         quote == null ? null : quote.changeAmount(),
         isFavorite);
+  }
+
+  /** "코스피 상장 · CEO 곽노정 · 설립 1983.02" 같은 한 줄. */
+  private static String buildDescription(Stock stock, CompanyInfo info) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(stock.getMarket().name());
+    sb.append(" 상장");
+    if (!info.ceoName().isEmpty()) sb.append(" · CEO ").append(info.ceoName());
+    String est = info.establishedDate();
+    if (est != null && est.length() >= 6) {
+      sb.append(" · 설립 ").append(est, 0, 4).append('.').append(est, 4, 6);
+    }
+    return sb.toString();
   }
 
   private StockBriefItem toBrief(Stock s, KrxQuote q) {
