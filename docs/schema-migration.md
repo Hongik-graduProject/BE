@@ -1,4 +1,12 @@
-# Schema Migration — MySQL → Postgres (Supabase)
+# Schema Migration: MySQL → Postgres
+
+> **갱신 안내 (2026-10-30).** 이 문서는 PR-02 당시의 기록이라 Supabase 를 전제로
+> 쓰여 있다. 이후 Supabase 의존성을 전부 제거하고 로컬 Postgres 기반 자체 인증으로
+> 옮겼다. 아래 본문에서 Supabase 를 언급하는 대목은 당시 의사결정의 배경으로만
+> 읽을 것. 현재 상태는 [`handoff-ml-integration.md`](handoff-ml-integration.md) §8 에
+> 있다. 특히 두 가지가 바뀌었다. `profiles.id` 는 이제 백엔드가 생성하는 UUID 이고,
+> refresh 토큰은 `typ=refresh` 클레임을 가진 무상태 JWT 다. §1 의 타입 변환표와
+> §2 의 Flyway 운영 규칙은 그대로 유효하다.
 
 > 본 문서는 PR-02 산출물이다. `docs/erdcloud_schema.sql` (MySQL DDL) 를 Postgres 로
 > 어떻게 옮겼는지, Flyway 운영 규칙은 무엇인지, JPA/Hibernate 매핑은 어떻게 잡는지를
@@ -30,13 +38,13 @@
 
 - `users` → `profiles` rename. PK 는 `UUID NOT NULL` 이며 `auth.users.id` 와 동일한
   값을 사용. Supabase `auth` 스키마에 대한 명시적 FK 는 두지 않는다(시스템 스키마이며
-  Supabase 매니지드 — 외부에서 FK 를 걸면 마이그레이션이 깨질 위험).
+  Supabase 매니지드라 외부에서 FK 를 걸면 마이그레이션이 깨질 위험).
 - `refresh_tokens` 폐기. Supabase Auth 가 refresh 토큰을 관리한다.
 - 6 개 user_id FK 컬럼은 모두 `UUID`: `profiles.id`, `folders.user_id`,
   `fcm_tokens.user_id`, `search_history.user_id`, `report_read_status.user_id`,
   `notifications.user_id`.
 - **컬럼 rename**: `financial_metric_catalog.code` (PK) →
-  `financial_metric_catalog.metric_code` (PK) — task-spec rename. FK 인
+  `financial_metric_catalog.metric_code` (PK) 로 변경. task-spec rename. FK 인
   `theme_metric_sensitivity.metric_code` 도 동일 이름으로 갱신됨.
   PR-07 에서 작성하는 JPA 엔티티 (`FinancialMetricCatalog`, `ThemeMetricSensitivity`)
   는 반드시 `metricCode` 필드명 + `@Column(name = "metric_code")` 를 사용해야 한다.
@@ -66,7 +74,7 @@
 
 v1.0 은 다음 hybrid 전략을 채택한다.
 
-- 마이그레이션 파일 최상단에 `CREATE TYPE … AS ENUM` 으로 **8 개 타입 정의** —
+- 마이그레이션 파일 최상단에 `CREATE TYPE … AS ENUM` 으로 **8 개 타입 정의**:
   `platform_type`, `folder_type`, `market_type`, `period_type`, `metric_category`,
   `direction_type`, `disclosure_type`, `notification_type`.
   이 정의는 “문서” + “미래에 native ENUM 으로 migrate 할 때 쓸 자리표시자” 역할을 한다.
@@ -120,10 +128,10 @@ Hibernate 6.2+ 는 JSON / UUID 를 native 로 지원하므로 `hypersistence-uti
 
 ## 6. PR-02 seed 노트
 
-- `V2__seed_metric_catalog.sql` — 15 개 재무지표. `ON CONFLICT (metric_code) DO
+- `V2__seed_metric_catalog.sql`: 15 개 재무지표. `ON CONFLICT (metric_code) DO
   NOTHING` 로 멱등. category 는 6 값 (`valuation`/`profitability`/`growth`/
   `solvency`/`liquidity`/`market`) 중 하나, CHECK constraint 로 보호.
-- `V3__seed_stocks.sql` + `db/seed/stocks-universe.csv` — **placeholder universe**.
+- `V3__seed_stocks.sql` + `db/seed/stocks-universe.csv`: **placeholder universe**.
   `K00001`..`K00200` (200 KOSPI) + `Q00001`..`Q00150` (150 KOSDAQ) = 350 종목.
   category 는 15 개 WICS-style 버킷을 순환 (반도체, IT서비스, 바이오, …).
   - **왜 placeholder 인가?** 실시간 KRX/KIS API 호출 없이 결정론적 universe 가
@@ -137,8 +145,8 @@ Hibernate 6.2+ 는 JSON / UUID 를 native 로 지원하므로 `hypersistence-uti
 
 ## 7. 참조
 
-- `docs/erdcloud_schema.sql` — MySQL 원본 DDL.
-- `docs/schema.dbml` — dbdiagram ERD (인덱스, FK ON DELETE 정책 원본).
+- `docs/erdcloud_schema.sql`: MySQL 원본 DDL.
+- `docs/schema.dbml`: dbdiagram ERD (인덱스, FK ON DELETE 정책 원본).
 - `docs/implPlan.md` §3 PR-02, §5.5 Gotchas.
 - Flyway Postgres docs: <https://documentation.red-gate.com/fd/postgresql-184127604.html>
 - Hibernate 6 ORM 사용자 가이드(JSON/UUID): <https://docs.jboss.org/hibernate/orm/6.5/userguide/html_single/Hibernate_User_Guide.html>

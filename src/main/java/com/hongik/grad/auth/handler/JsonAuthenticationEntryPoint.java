@@ -1,7 +1,7 @@
 package com.hongik.grad.auth.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hongik.grad.auth.filter.SupabaseJwtAuthenticationFilter;
+import com.hongik.grad.auth.filter.JwtAuthenticationFilter;
 import com.hongik.grad.common.api.ApiResponse;
 import com.hongik.grad.common.api.ErrorCode;
 import com.hongik.grad.common.exception.DomainException;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 /**
  * Emits a JSON {@link ApiResponse} when no authenticated principal is present.
  *
- * <p>If {@link com.hongik.grad.auth.filter.SupabaseJwtAuthenticationFilter} attached a {@link
+ * <p>If {@link com.hongik.grad.auth.filter.JwtAuthenticationFilter} attached a {@link
  * DomainException} (e.g. expired token) as the {@code authError} request attribute, its error code
  * is honored. Otherwise we fall back to {@link ErrorCode#AUTH_INVALID}.
  */
@@ -35,7 +35,7 @@ public class JsonAuthenticationEntryPoint implements AuthenticationEntryPoint {
       HttpServletResponse response,
       AuthenticationException authException)
       throws IOException {
-    Object attr = request.getAttribute(SupabaseJwtAuthenticationFilter.AUTH_ERROR_ATTRIBUTE);
+    Object attr = request.getAttribute(JwtAuthenticationFilter.AUTH_ERROR_ATTRIBUTE);
     ErrorCode code = ErrorCode.AUTH_INVALID;
     String message = "Authentication required";
     if (attr instanceof DomainException de) {

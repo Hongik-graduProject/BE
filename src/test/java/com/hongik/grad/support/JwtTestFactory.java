@@ -10,8 +10,8 @@ import java.util.UUID;
 import javax.crypto.SecretKey;
 
 /**
- * Builds Supabase-shaped HS256 JWTs for tests. Mirrors the {@code supabase.jwt-secret} in {@code
- * application-test.yml} / {@code application-test-db.yml} so signature verification succeeds.
+ * Builds HS256 JWTs for tests. Mirrors the {@code jwt.secret} in {@code application-test.yml} and
+ * {@code application-test-db.yml} so signature verification succeeds.
  */
 public final class JwtTestFactory {
 

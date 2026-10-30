@@ -1,4 +1,4 @@
-# 인수인계서: ML 예측 서비스 연동 (BE ↔ KOSPI 모델 API)
+# 인수인계서: ML 예측 서비스 연동 + Supabase 제거
 
 > 작성일: 2026-10-30. 대상 독자: 이 작업을 이어받는 백엔드 담당자.
 > 이 문서는 "어디까지 됐고, 무엇이 안 되며, 다음 사람이 무엇을 해야 하는지"만 적는다.
@@ -9,8 +9,14 @@
 
 ## 0. 한 줄 요약
 
-백엔드가 ML 모델 서비스를 호출하는 배선은 끝났다. 단위 테스트로 검증했다.
+이 세션에서 두 가지를 했다.
+
+첫째, 백엔드가 ML 모델 서비스를 호출하는 배선을 끝냈다. 단위 테스트로 검증했다.
 다만 모델 artifact 파일이 없다. 그래서 실제 값이 흐르는 것은 확인하지 못했다.
+자세한 내용은 §1 부터 §6 까지다.
+
+둘째, Supabase 의존성을 전부 걷어내고 로컬 Postgres 기반 자체 인증으로 옮겼다.
+단위 테스트 91 개가 통과한다. 자세한 내용은 §8 이다.
 
 ---
 
@@ -165,6 +171,59 @@ curl -H "Authorization: Bearer <JWT>" \
   http://localhost:8080/analysis/005930/prediction
 ```
 
+### 3-4. 인수인계 시점의 로컬 `.env` 전문
+
+작업에 쓰던 로컬 `.env` 의 실제 내용이다. `.env` 는 `.gitignore` 1 행이 막고 있어
+저장소에 올라가지 않는다. 아래 값은 전부 docker-compose 로컬 기본값이고
+실제 자격증명은 하나도 들어 있지 않다. 그대로 복사해서 쓰면 된다.
+
+```properties
+SERVER_PORT=8080
+SPRING_PROFILES_ACTIVE=local
+DB_URL=jdbc:postgresql://localhost:5432/postgres
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+REDIS_HOST=localhost
+REDIS_PORT=6379
+DART_API_KEY=
+DART_POLLER_ENABLED=false
+KRX_API_BASE_URL=
+KRX_API_KEY=
+KRX_API_SECRET=
+FIREBASE_CREDENTIALS_PATH=
+FIREBASE_PROJECT_ID=
+ML_API_BASE_URL=
+ML_API_KEY=
+```
+
+`JWT_SECRET` 은 일부러 넣지 않았다. 비워 두면 `application-local.yml` 의 로컬 전용
+기본값을 쓰므로 로컬에서는 설정이 필요 없다. 운영에서는 반드시 32 자 이상 랜덤
+값을 넣어야 한다 (§8-4).
+
+`SUPABASE_*` 키는 전부 사라졌다 (§8).
+
+### 3-5. 비어 있는 키가 무엇을 끄고 있나
+
+위 `.env` 는 외부 연동이 거의 다 꺼진 상태다. 각 빈 키의 영향은 다음과 같다.
+
+| 빈 키 | 꺼지는 기능 |
+|---|---|
+| `DART_API_KEY` | `DartClient` 가 빈 목록을 반환한다. 공시 수집이 0 건이므로 보고서도 알림도 생성되지 않는다. 게다가 `CorpCodeBootstrap` 이 종목 마스터를 못 채우므로 `stocks` 테이블이 빈 채로 남는다 |
+| `DART_POLLER_ENABLED=false` | 60 초 주기 폴링 자체를 끈다. 위 항목과 중복으로 꺼져 있다 |
+| `KRX_API_BASE_URL`, `KRX_API_KEY`, `KRX_API_SECRET` | KIS 시세를 쓰지 않고 `NaverQuoteClient` 폴백으로 간다. 시세는 나온다 |
+| `FIREBASE_CREDENTIALS_PATH`, `FIREBASE_PROJECT_ID` | FCM 푸시만 생략된다. 인앱 알림은 정상 기록된다 |
+| `ML_API_BASE_URL`, `ML_API_KEY` | 이번 작업의 예측 엔드포인트가 항상 `available=false` 를 준다 |
+
+인증은 이제 외부 키가 필요 없다. `POST /auth/signup` 과 `POST /auth/login` 이 로컬
+`profiles` 테이블만으로 동작한다 (§8).
+
+가장 먼저 채워야 할 키는 `DART_API_KEY` 다.
+V7 마이그레이션이 V3 의 placeholder 종목을 지웠다.
+그 자리는 부팅 시 `CorpCodeBootstrap` 이 DART `corpCode.xml` 로 채운다.
+키가 없으면 `stocks` 가 빈 채로 남는다.
+그러면 검색도 즐겨찾기도 동작하지 않는다.
+키는 <https://opendart.fss.or.kr> 에서 무료로 발급한다.
+
 ---
 
 ## 4. 안 된 것 / 막힌 것
@@ -291,3 +350,150 @@ BE 의 stage2 는 테마 × 재무지표 β 를 기대하고, `MetricDeltaCalcul
 
 FE 에 `.omc/` 디렉토리가 추적되지 않은 채 남아 있다. 에이전트 툴의 상태 파일이므로
 커밋하면 안 된다. FE `.gitignore` 에 `.omc/` 를 추가해 두는 것을 권한다.
+
+---
+
+## 8. Supabase 제거와 자체 인증 전환
+
+### 8-1. 왜 바꿨나
+
+Supabase 는 DB 가 아니라 인증에만 걸려 있었다. 로컬 `.env` 의 `DB_URL` 은 이미
+`localhost:5432` 였고 `docker-compose.yml` 이 `postgres:15-alpine` 을 띄운다.
+남은 의존성은 GoTrue 프록시와 JWKS 토큰 검증뿐이었고, 둘 다 외부 계정이 있어야
+동작했다. 토이 프로젝트에서 외부 계정 없이 띄울 수 있도록 자체 인증으로 옮겼다.
+
+### 8-2. 바뀐 구조
+
+| 항목 | 전 | 후 |
+|---|---|---|
+| 회원가입·로그인 | Supabase GoTrue 프록시 | 로컬 `profiles` 테이블 |
+| 비밀번호 | Supabase 보관 | BCrypt 해시로 `profiles.password_hash` |
+| 토큰 발급 | Supabase | `JwtProvider` (HS256) |
+| 토큰 검증 | JWKS 조회 + HS256 폴백 | `JwtVerifier` (HS256 전용) |
+| 사용자 PK | Supabase `auth.users.id` | 가입 시 백엔드가 생성한 UUID |
+| DB | Supabase Postgres | 로컬 docker-compose Postgres |
+
+**FE 는 바꿀 것이 없다.** `SignupResponse`, `TokenResponse`, `AuthUserDto` 의 필드
+모양과 엔드포인트 경로가 그대로다. 구현만 교체했다.
+
+### 8-3. 변경된 파일
+
+신규 3 개:
+
+- `db/migration/V9__add_profile_credentials.sql`
+- `auth/provider/JwtProvider.java`
+- `auth/provider/JwtVerifier.java`
+
+삭제 7 개:
+
+- `auth/provider/SupabaseJwtVerifier.java`
+- `dev/SupabaseAuthClient.java`
+- `dev/DevTokenController.java`
+- `dev/DevTokenRequest.java`
+- `dev/DevTokenResponse.java`
+- `src/test/.../dev/DevTokenControllerTest.java`
+- `src/test/.../auth/SupabaseJwtVerifierTest.java`
+
+이름 변경 1 개: `SupabaseJwtAuthenticationFilter` → `JwtAuthenticationFilter`.
+이 이름을 참조하던 테스트 6 개도 함께 고쳤다.
+
+수정:
+
+- `auth/application/AuthService.java` 전면 재작성
+- `users/domain/Profile.java` (email, passwordHash, `signup()` 팩토리)
+- `users/domain/ProfileRepository.java` (`findByEmail`, `existsByEmail`)
+- `config/SecurityConfig.java` (`PasswordEncoder` 빈 추가, `/dev/**` permitAll 삭제)
+- `application.yml`, `application-local.yml`, 테스트 yml 2 개, `.env.example`
+
+신규 테스트 2 개: `JwtVerifierTest` 9 개, `AuthServiceTest` 9 개.
+
+### 8-4. 설정
+
+`JWT_SECRET` 하나만 쓴다. `SUPABASE_*` 는 전부 없앴다.
+
+```properties
+JWT_SECRET=<32자 이상 랜덤 문자열>
+JWT_ACCESS_TTL=PT1H
+JWT_REFRESH_TTL=P30D
+```
+
+로컬에서는 비워 두어도 된다. `application-local.yml` 이 개발용 기본값을 준다.
+운영에서는 반드시 넣어야 한다. 비었거나 `replace-me` 로 시작하거나 32 바이트
+미만이면 `JwtVerifier` 가 기동 시점에 예외를 던진다.
+
+### 8-5. 설계 결정 세 가지
+
+**리프레시 토큰은 상태를 저장하지 않는다.** `refresh_tokens` 테이블을 만들지 않고
+`typ=refresh` 클레임을 가진 JWT 를 쓴다. 그래서 서버가 토큰을 즉시 무효화할 수
+없다. 대신 `AuthService.refresh` 가 프로필을 다시 읽으므로, 탈퇴한 계정의 토큰은
+바로 막힌다. 유출된 토큰은 만료까지 유효하다.
+
+**액세스 토큰과 리프레시 토큰은 서로 대체할 수 없다.** `verify` 는 `typ=refresh` 를
+거절하고 `verifyRefresh` 는 그 반대를 거절한다. 둘 다 테스트로 고정했다.
+
+**로그인 실패 메시지는 한 종류다.** 없는 이메일과 틀린 비밀번호가 똑같이
+`AUTH_INVALID` 를 준다. 어떤 이메일이 가입되어 있는지 로그인 화면에서 새지 않게
+하기 위해서다. `/auth/check-email` 은 가입 폼을 위해 그 정보를 일부러 노출한다.
+
+### 8-6. V9 마이그레이션 주의
+
+`profiles.email` 과 `profiles.password_hash` 는 nullable 이다. V1 부터 V8 사이에
+만들어진 기존 행은 Supabase 가 자격증명을 들고 있어서 백필할 값이 없다. 그런 행은
+로그인할 수 없고, 다시 가입하면 된다. 이메일 유니크는 부분 인덱스
+(`WHERE email IS NOT NULL`) 로 걸어서 NULL 행이 여러 개 있어도 된다.
+
+### 8-7. 검증 결과
+
+```bash
+./gradlew spotlessApply test \
+  --tests "*AuthServiceTest*" --tests "*JwtVerifierTest*" \
+  --tests "*AuthControllerSliceTest*" --tests "*SecurityConfigTest*" \
+  --tests "*ControllerSliceTest*" --tests "*MlPredictionClientTest*"
+```
+
+| 클래스 | 결과 |
+|---|---|
+| `AuthServiceTest` | 9 / 9 통과 |
+| `JwtVerifierTest` | 9 / 9 통과 |
+| `AuthControllerSliceTest` | 12 / 12 통과 |
+| `SecurityConfigTest` | 4 / 4 통과 |
+| `AnalysisControllerSliceTest` | 10 / 10 통과 |
+| `FolderControllerSliceTest` | 18 / 18 통과 |
+| `FavoriteControllerSliceTest` | 13 / 13 통과 |
+| `NotificationControllerSliceTest` | 7 / 7 통과 |
+| `FcmTokenControllerSliceTest` | 5 / 5 통과 |
+| `MlPredictionClientTest` | 4 / 4 통과 |
+
+합계 91 개 전부 통과. 실패 0 건.
+
+### 8-8. 아직 확인 못 한 것
+
+**V9 를 실제 Postgres 에 적용해 보지 못했다.** `FlywayMigrationSmokeTest` 가
+Testcontainers 를 쓰는데 이 환경에 Docker 가 없다. V1 부터 V9 까지 전체 시퀀스
+dry-run 은 Docker 를 켜고 다음을 돌려서 꼭 확인할 것.
+
+```bash
+./gradlew test --tests "*FlywayMigrationSmokeTest*"
+```
+
+같은 이유로 `SignupGoldenPathE2ETest` 와 `AuthOnboardingE2ETest` 도 못 돌렸다.
+두 테스트는 `JwtTestFactory` 가 만든 토큰으로 `POST /users` 를 호출하는 구조라
+이번 변경과 호환되지만, 실제 실행으로 확인한 것은 아니다.
+
+### 8-9. 같이 고친 문서
+
+`README.md` 와 `docs/architecture.md` 도 함께 갱신했다. 둘 다 Supabase 를 전제로
+쓰여 있어서 그대로 두면 다음 사람이 틀린 지시를 따르게 된다.
+
+- README 환경변수 표에서 `SUPABASE_*` 4 개를 빼고 `JWT_SECRET`,
+  `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL` 을 넣었다.
+- README 의 "Swagger 에서 dev 토큰 발급" 절을 "가입 후 로그인" 절로 바꿨다.
+  `POST /dev/auth/token` 은 삭제됐다. `POST /auth/signup` 으로 가입하고
+  `POST /auth/login` 이 주는 `access_token` 을 Swagger Authorize 에 넣으면 된다.
+- `architecture.md` 의 1 번 시퀀스 다이어그램에서 Supabase Auth 참여자를 빼고
+  `AuthController` 와 `AuthService` 가 직접 토큰을 발급하는 흐름으로 다시 그렸다.
+
+이제 `src/`, `README.md`, `docs/` 어디에도 Supabase 참조가 없다. 유일한 예외는
+두 군데의 의도적인 이력 설명이다. `V1__init_schema.sql` 은 불변 파일이라 당시
+주석을 그대로 두었고, `Profile.java` 의 javadoc 은 왜 자격증명 컬럼이 nullable
+인지 설명하려고 전환 사실을 언급한다.

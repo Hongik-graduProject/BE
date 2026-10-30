@@ -1,6 +1,6 @@
 package com.hongik.grad.config;
 
-import com.hongik.grad.auth.filter.SupabaseJwtAuthenticationFilter;
+import com.hongik.grad.auth.filter.JwtAuthenticationFilter;
 import com.hongik.grad.auth.handler.JsonAccessDeniedHandler;
 import com.hongik.grad.auth.handler.JsonAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
@@ -9,27 +9,29 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Stateless Supabase-JWT-backed security chain.
+ * Stateless JWT security chain. Tokens are issued and verified by this backend itself.
  *
  * <p>Every request except health, OpenAPI metadata, and CORS preflight must carry a valid Bearer
- * token verified by {@link SupabaseJwtAuthenticationFilter}.
+ * token verified by {@link JwtAuthenticationFilter}.
  */
 @Configuration
 public class SecurityConfig {
 
-  private final SupabaseJwtAuthenticationFilter supabaseJwtFilter;
+  private final JwtAuthenticationFilter jwtFilter;
   private final JsonAuthenticationEntryPoint authenticationEntryPoint;
   private final JsonAccessDeniedHandler accessDeniedHandler;
 
   public SecurityConfig(
-      SupabaseJwtAuthenticationFilter supabaseJwtFilter,
+      JwtAuthenticationFilter jwtFilter,
       JsonAuthenticationEntryPoint authenticationEntryPoint,
       JsonAccessDeniedHandler accessDeniedHandler) {
-    this.supabaseJwtFilter = supabaseJwtFilter;
+    this.jwtFilter = jwtFilter;
     this.authenticationEntryPoint = authenticationEntryPoint;
     this.accessDeniedHandler = accessDeniedHandler;
   }
@@ -50,25 +52,26 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
-                    // Public auth flows proxied to Supabase GoTrue. logout + account stay
-                    // authenticated (they need the caller's Bearer token / principal).
+                    // Public auth flows. logout + account stay authenticated (they need the
+                    // caller's Bearer token / principal).
                     .requestMatchers(
                         HttpMethod.POST, "/auth/signup", "/auth/login", "/auth/refresh")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/auth/check-email")
                     .permitAll()
-                    // Dev token mint endpoint must be reachable unauthenticated. Safe in prod: its
-                    // handler (DevTokenController) is @Profile("local") only, so /dev/** 404s in
-                    // prod regardless of this permitAll.
-                    .requestMatchers("/dev/**")
-                    .permitAll()
                     .anyRequest()
                     .authenticated())
-        .addFilterBefore(supabaseJwtFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
         .exceptionHandling(
             ex ->
                 ex.authenticationEntryPoint(authenticationEntryPoint)
                     .accessDeniedHandler(accessDeniedHandler));
     return http.build();
+  }
+
+  /** BCrypt for the locally stored password hashes (see {@code profiles.password_hash}). */
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
   }
 }

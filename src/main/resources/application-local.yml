@@ -7,11 +7,10 @@ spring:
       hibernate:
         format_sql: true
 
-# LOCAL DEV ONLY: a deterministic, non-placeholder HS256 secret so SupabaseJwtVerifier boots and
-# the dev token endpoint (/dev/auth/token, @Profile("local")) mints tokens that pass verification.
-# prod MUST inject the real Supabase JWT secret via SUPABASE_JWT_SECRET.
-supabase:
-  jwt-secret: ${SUPABASE_JWT_SECRET:local-dev-jwt-secret-32-bytes-minimum-xxxxxxxx}
+# LOCAL DEV ONLY: a deterministic, non-placeholder HS256 secret so the app boots without
+# any configuration. prod MUST inject a random secret via JWT_SECRET.
+jwt:
+  secret: ${JWT_SECRET:local-dev-jwt-secret-32-bytes-minimum-xxxxxxxx}
 
 logging:
   level:

@@ -2,7 +2,7 @@ package com.hongik.grad.auth.filter;
 
 import com.hongik.grad.auth.principal.AuthUser;
 import com.hongik.grad.auth.provider.JwtClaims;
-import com.hongik.grad.auth.provider.SupabaseJwtVerifier;
+import com.hongik.grad.auth.provider.JwtVerifier;
 import com.hongik.grad.common.exception.DomainException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,16 +27,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * keeps response shaping in a single place ({@code JsonAuthenticationEntryPoint}).
  */
 @Component
-public class SupabaseJwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-  private static final Logger log = LoggerFactory.getLogger(SupabaseJwtAuthenticationFilter.class);
+  private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
   private static final String BEARER_PREFIX = "Bearer ";
 
   public static final String AUTH_ERROR_ATTRIBUTE = "authError";
 
-  private final SupabaseJwtVerifier verifier;
+  private final JwtVerifier verifier;
 
-  public SupabaseJwtAuthenticationFilter(SupabaseJwtVerifier verifier) {
+  public JwtAuthenticationFilter(JwtVerifier verifier) {
     this.verifier = verifier;
   }
 

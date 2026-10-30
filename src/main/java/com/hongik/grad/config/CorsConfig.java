@@ -10,8 +10,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 /**
  * CORS whitelist for the mobile/web clients.
  *
- * <p>No wildcard {@code *} origin: only Vercel-hosted frontends and local dev. Supabase domains do
- * not need to be listed here because the browser talks to Supabase directly, not via our backend.
+ * <p>No wildcard {@code *} origin: only Vercel-hosted frontends and local dev.
  *
  * <p>Exposed as a {@link CorsConfigurationSource} bean (not a standalone {@code CorsFilter}) so
  * that {@code SecurityConfig} can wire it into the Spring Security filter chain via {@code

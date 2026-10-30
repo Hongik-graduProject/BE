@@ -5,7 +5,7 @@ auto-generates a ThemeSense analysis report and fans it out to every user who fa
 (in-app notification + FCM push).
 
 - **Stack**: Java 21 (virtual threads), Spring Boot 3.3, Gradle (Groovy DSL), Postgres 15
-  (Supabase), Redis 7, Flyway, Firebase Admin (FCM)
+  (local docker-compose), Redis 7, Flyway, Firebase Admin (FCM)
 - **Group/Artifact/Version**: `com.hongik.grad` / `hongik-grad` / `1.0.0`
 - **Implementation plan**: [`../docs/implPlan.md`](../docs/implPlan.md)
 - **Architecture diagrams**: [`docs/architecture.md`](docs/architecture.md)
@@ -21,7 +21,7 @@ cd hongik_grad/BE
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env with your Supabase / DART / KRX / Firebase credentials (table below).
+# Edit .env with your DART / KRX / Firebase credentials (table below).
 
 # 3. Run the stack (Postgres + Redis + backend)
 docker-compose up --build
@@ -39,18 +39,17 @@ curl http://localhost:8080/actuator/health
 
 ## Environment variables
 
-Synced with [`.env.example`](.env.example). Supabase issues the JWTs the backend verifies — the
-backend never mints tokens.
+Synced with [`.env.example`](.env.example). The backend issues and verifies its own JWTs; there is
+no external identity provider.
 
 | Variable | Required | Description |
 |---|---|---|
 | `SERVER_PORT` | no (8080) | HTTP port |
 | `SPRING_PROFILES_ACTIVE` | yes | `local` / `prod` |
-| `SUPABASE_URL` | yes | Supabase project URL |
-| `SUPABASE_ANON_KEY` | yes | Public anon key (client) |
-| `SUPABASE_SERVICE_ROLE_KEY` | yes | Service role key — server only, never ship to client |
-| `SUPABASE_JWT_SECRET` | yes | HS256 secret used to verify Supabase JWTs |
-| `DB_URL` | yes | `jdbc:postgresql://<host>.supabase.co:5432/postgres` |
+| `JWT_SECRET` | prod only | HS256 signing secret, 32+ chars. Local falls back to a dev default |
+| `JWT_ACCESS_TTL` | no (PT1H) | Access token lifetime, ISO-8601 duration |
+| `JWT_REFRESH_TTL` | no (P30D) | Refresh token lifetime, ISO-8601 duration |
+| `DB_URL` | yes | `jdbc:postgresql://localhost:5432/postgres` |
 | `DB_USERNAME` | yes | DB user (`postgres`) |
 | `DB_PASSWORD` | yes | DB password |
 | `REDIS_HOST` / `REDIS_PORT` | yes | Redis for KRX quote cache |
@@ -91,11 +90,9 @@ running Docker daemon those tests fail to start. The two PR-10 golden-path E2E s
 ./gradlew spotlessCheck      # verify formatting
 ```
 
-## Test the API in Swagger UI (local only)
+## Test the API in Swagger UI
 
-The backend never mints real tokens, but on the `local` profile a dev-only endpoint mints a
-Supabase-shaped JWT so you can drive every protected endpoint from Swagger UI. This endpoint
-(`POST /dev/auth/token`) is gated by `@Profile("local")` and does not exist in prod (404).
+The backend issues its own tokens, so sign up once and reuse the access token.
 
 1. Start the stack on the `local` profile (default):
 
@@ -105,35 +102,35 @@ Supabase-shaped JWT so you can drive every protected endpoint from Swagger UI. T
 
 2. Open Swagger UI: <http://localhost:8080/swagger-ui.html>.
 
-3. Mint a dev token. In Swagger expand **dev-token-controller → POST /dev/auth/token** and
-   *Execute* (body is optional — omit it for a random `sub`), or via curl:
+3. Sign up, then log in. Via Swagger expand **auth-controller**, or via curl:
 
    ```bash
-   curl -s -X POST http://localhost:8080/dev/auth/token \
-     -H "Content-Type: application/json" -d '{"email":"hongik@local.test"}'
-   # { "status":"success", "data": { "access_token":"<JWT>", "token_type":"Bearer",
-   #   "sub":"<uuid>", "expires_in":3600 } }
+   curl -s -X POST http://localhost:8080/auth/signup      -H "Content-Type: application/json"      -d '{"email":"hongik@local.test","password":"secret1","nickname":"hongik"}'
+
+   curl -s -X POST http://localhost:8080/auth/login      -H "Content-Type: application/json"      -d '{"email":"hongik@local.test","password":"secret1"}'
+   # { "status":"success", "data": { "access_token":"<JWT>", "refresh_token":"<JWT>",
+   #   "token_type":"Bearer", "expires_in":3600, "user": {...} } }
    ```
 
    Copy `data.access_token`.
 
 4. Click **Authorize** (top right). The scheme is HTTP `bearer` (`bearerAuth`), so paste just the
-   raw token — Swagger adds the `Authorization: Bearer <token>` header to every request. Confirm and
+   raw token. Swagger adds the `Authorization: Bearer <token>` header to every request. Confirm and
    close.
 
-5. Now call any endpoint. Golden path: `POST /users` (onboarding, creates the default folder) →
-   `GET /folders` → `GET /notifications`.
+5. Now call any endpoint. Golden path: `POST /users` (onboarding, creates the default folder),
+   then `GET /folders`, then `GET /notifications`.
 
-The token lives 1 hour; mint a new one when calls start returning 401. The dev token endpoint is
-**local only** — never available in prod.
+The access token lives 1 hour. Call `POST /auth/refresh` with the refresh token, or log in again,
+when calls start returning 401.
 
 ## Golden path (curl)
 
-Replace `<JWT>` with a Supabase access token (the `Authorization` header is `Bearer <JWT>`).
+Replace `<JWT>` with the `access_token` from `POST /auth/login`.
 
 ```bash
 BASE=http://localhost:8080
-JWT=<supabase-access-token>
+JWT=<access-token-from-auth-login>
 
 # 1. Onboarding — creates the profile + default folder (idempotent).
 curl -s -X POST "$BASE/users" \
@@ -161,7 +158,7 @@ java -jar build/libs/hongik-grad-1.0.0.jar
 
 **Render / Fly.io / Railway** (free or low-cost tiers):
 
-1. Provision managed Postgres (or point `DB_*` at Supabase) and a managed Redis instance.
+1. Provision managed Postgres and a managed Redis instance, then point `DB_*` / `REDIS_*` at them.
 2. Set every environment variable from the table above as platform secrets.
 3. Deploy from the `Dockerfile` (or buildpack) and set the health check to `GET /actuator/health`.
 4. Upload the Firebase service-account JSON as a secret file and point `FIREBASE_CREDENTIALS_PATH`

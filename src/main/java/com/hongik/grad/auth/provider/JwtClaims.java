@@ -4,9 +4,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Verified Supabase JWT claims, narrowed to the fields the application cares about.
+ * Verified JWT claims, narrowed to the fields the application cares about.
  *
- * <p>Supabase issues HS256-signed tokens whose {@code sub} is the {@code auth.users.id} UUID and
- * whose {@code aud} must be {@code "authenticated"} for a logged-in (non-anonymous) user.
+ * <p>{@code sub} is the {@code profiles.id} UUID and {@code aud} must be {@code "authenticated"}.
  */
 public record JwtClaims(UUID sub, String email, String audience, Instant expiresAt) {}

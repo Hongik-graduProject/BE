@@ -25,7 +25,7 @@ class ProfileRepositoryTest {
   @Autowired private TestEntityManager em;
 
   @Test
-  @DisplayName("Profile 저장 시 Supabase 발급 UUID PK + BaseTimeEntity 타임스탬프가 채워진다")
+  @DisplayName("Profile 저장 시 UUID PK + BaseTimeEntity 타임스탬프가 채워진다")
   void saveAndRead() {
     UUID id = UUID.randomUUID();
     Profile saved = repository.save(new Profile(id, "에밀"));

@@ -14,10 +14,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hongik.grad.auth.filter.SupabaseJwtAuthenticationFilter;
+import com.hongik.grad.auth.filter.JwtAuthenticationFilter;
 import com.hongik.grad.auth.handler.JsonAccessDeniedHandler;
 import com.hongik.grad.auth.handler.JsonAuthenticationEntryPoint;
-import com.hongik.grad.auth.provider.SupabaseJwtVerifier;
+import com.hongik.grad.auth.provider.JwtVerifier;
 import com.hongik.grad.common.api.ErrorCode;
 import com.hongik.grad.common.exception.DomainException;
 import com.hongik.grad.config.SecurityConfig;
@@ -51,8 +51,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(FolderController.class)
 @Import({
   SecurityConfig.class,
-  SupabaseJwtVerifier.class,
-  SupabaseJwtAuthenticationFilter.class,
+  JwtVerifier.class,
+  JwtAuthenticationFilter.class,
   JsonAuthenticationEntryPoint.class,
   JsonAccessDeniedHandler.class
 })

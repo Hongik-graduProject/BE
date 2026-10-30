@@ -23,7 +23,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * PR-10 golden path E2E: signup (Supabase JWT) → onboarding (POST /users) → folders (GET /folders).
+ * PR-10 golden path E2E: signup (backend JWT) → onboarding (POST /users) → folders (GET /folders).
  *
  * <p>Extends {@code AuthOnboardingE2ETest} (which stops at profile/folder persistence) by driving
  * the real {@code GET /folders} read path and asserting the spec §3 folder-list response keys:

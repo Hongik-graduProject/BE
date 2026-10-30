@@ -20,9 +20,8 @@ spring:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
-supabase:
-  jwt-secret: test-secret-32-bytes-minimum-aaaaaaaa
-  audience: authenticated
+jwt:
+  secret: test-secret-32-bytes-minimum-aaaaaaaa
 
 dart:
   poller:

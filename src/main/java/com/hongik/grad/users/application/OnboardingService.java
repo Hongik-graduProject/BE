@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Idempotent onboarding: ensure exactly one {@link Profile} and one {@link FolderType#DEFAULT}
- * folder exist for the authenticated Supabase user.
+ * folder exist for the authenticated user.
  *
  * <p>Re-calling with a different nickname updates the profile name but never creates a second
  * default folder.

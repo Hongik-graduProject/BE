@@ -19,10 +19,10 @@ import com.hongik.grad.analysis.dto.ReportListResponse;
 import com.hongik.grad.analysis.dto.SensitiveMetricResponse;
 import com.hongik.grad.analysis.dto.ThemeItemResponse;
 import com.hongik.grad.analysis.dto.ThemesResponse;
-import com.hongik.grad.auth.filter.SupabaseJwtAuthenticationFilter;
+import com.hongik.grad.auth.filter.JwtAuthenticationFilter;
 import com.hongik.grad.auth.handler.JsonAccessDeniedHandler;
 import com.hongik.grad.auth.handler.JsonAuthenticationEntryPoint;
-import com.hongik.grad.auth.provider.SupabaseJwtVerifier;
+import com.hongik.grad.auth.provider.JwtVerifier;
 import com.hongik.grad.common.api.ErrorCode;
 import com.hongik.grad.common.exception.DomainException;
 import com.hongik.grad.config.SecurityConfig;
@@ -43,8 +43,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(AnalysisController.class)
 @Import({
   SecurityConfig.class,
-  SupabaseJwtVerifier.class,
-  SupabaseJwtAuthenticationFilter.class,
+  JwtVerifier.class,
+  JwtAuthenticationFilter.class,
   JsonAuthenticationEntryPoint.class,
   JsonAccessDeniedHandler.class
 })

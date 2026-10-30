@@ -26,8 +26,7 @@ spring:
     hikari:
       # PR-01 only: allow boot without DB until PR-02 wires Flyway
       initialization-fail-timeout: -1
-      # Supabase session pooler caps concurrent clients (~15). Keep the pool small
-      # so multiple local instances / tools don't exhaust it.
+      # Keep the pool small so multiple local instances and tools can share one Postgres.
       maximum-pool-size: ${DB_POOL_MAX:5}
       minimum-idle: 1
   data:
@@ -83,12 +82,11 @@ logging:
     root: INFO
     com.hongik.grad: INFO
 
-supabase:
-  url: ${SUPABASE_URL:}
-  anon-key: ${SUPABASE_ANON_KEY:}
-  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
-  jwt-secret: ${SUPABASE_JWT_SECRET:replace-me-with-supabase-jwt-secret}
-  audience: authenticated
+jwt:
+  # 백엔드가 직접 토큰을 발급·검증한다. HS256 이므로 32자 이상이어야 한다.
+  secret: ${JWT_SECRET:replace-me-with-a-random-32-byte-secret}
+  access-token-ttl: ${JWT_ACCESS_TTL:PT1H}
+  refresh-token-ttl: ${JWT_REFRESH_TTL:P30D}
 
 firebase:
   credentials-path: ${FIREBASE_CREDENTIALS_PATH:}

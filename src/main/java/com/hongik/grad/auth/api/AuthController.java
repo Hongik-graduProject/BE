@@ -26,9 +26,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Public + authenticated auth endpoints backed by Supabase GoTrue. The frontend calls these
- * directly; the BE is the contract source of truth. Responses use the standard {@link ApiResponse}
- * wrapper.
+ * Public + authenticated auth endpoints backed by the local {@code profiles} table. The frontend
+ * calls these directly; the BE is the contract source of truth. Responses use the standard {@link
+ * ApiResponse} wrapper.
  */
 @RestController
 @RequestMapping("/auth")

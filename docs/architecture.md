@@ -4,9 +4,10 @@ This document captures the three load-bearing runtime flows of the backend as Me
 sequence diagrams. Class, event, and endpoint names match the source exactly so the diagrams
 double as a navigation map.
 
-- **Stack**: Java 21, Spring Boot 3.3, Postgres 15 (Supabase), Redis 7, Flyway, Firebase Admin (FCM)
-- **Auth model**: Supabase issues HS256 JWTs; the backend only *verifies* them
-  (`SupabaseJwtAuthenticationFilter` → `SupabaseJwtVerifier`).
+- **Stack**: Java 21, Spring Boot 3.3, Postgres 15, Redis 7, Flyway, Firebase Admin (FCM)
+- **Auth model**: the backend issues and verifies its own HS256 JWTs
+  (`JwtProvider` → `JwtAuthenticationFilter` → `JwtVerifier`). Passwords are BCrypt hashed in
+  `profiles.password_hash`. There is no external identity provider.
 - **Async model**: domain events are published in-process and consumed by
   `@TransactionalEventListener(phase = AFTER_COMMIT)` + `@Async("taskExecutor")` listeners, so a
   consumer never observes uncommitted data and a listener failure never rolls back the producer.
@@ -15,31 +16,39 @@ double as a navigation map.
 
 ## 1. Signup + Onboarding
 
-The mobile client authenticates against Supabase Auth and receives a JWT. The backend never mints
-tokens; it verifies the Supabase-signed JWT and performs an idempotent onboarding write (one
-`Profile` + one DEFAULT `Folder`).
+The mobile client signs up and logs in against this backend, which issues the JWT. Onboarding is a
+separate idempotent write (one `Profile` nickname update + one DEFAULT `Folder`).
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant FE as Mobile App
-    participant SB as Supabase Auth
-    participant Filter as SupabaseJwtAuthenticationFilter
+    participant AC as AuthController
+    participant AS as AuthService
+    participant Filter as JwtAuthenticationFilter
     participant UC as UserController
     participant OB as OnboardingService
     participant DB as Postgres
 
-    FE->>SB: signUp / signInWithPassword
-    SB-->>FE: access_token (HS256 JWT, aud=authenticated)
+    FE->>AC: POST /auth/signup {email, password, nickname}
+    AC->>AS: signup(...)
+    AS->>DB: INSERT Profile (UUID, email, BCrypt hash)
+    AS-->>FE: 200 { user_id, email, nickname, created_at }
+
+    FE->>AC: POST /auth/login {email, password}
+    AC->>AS: login(...)
+    AS->>DB: SELECT Profile by email
+    AS->>AS: BCrypt.matches + JwtProvider.createAccessToken/RefreshToken
+    AS-->>FE: 200 { access_token, refresh_token, token_type, expires_in, user }
 
     FE->>Filter: POST /users (Bearer JWT, {nickname})
-    Filter->>Filter: SupabaseJwtVerifier.verify(token)
-    alt invalid / expired / wrong aud
+    Filter->>Filter: JwtVerifier.verify(token)
+    alt invalid / expired / wrong aud / refresh token
         Filter-->>FE: 401 AUTH_INVALID | AUTH_EXPIRED
     else valid
         Filter->>UC: AuthUser(id=sub)
         UC->>OB: onboard(user, request)
-        OB->>DB: upsert Profile (id = JWT sub)
+        OB->>DB: upsert Profile nickname (id = JWT sub)
         OB->>DB: ensure DEFAULT Folder (Folder.defaultFor(userId))
         OB-->>UC: ProfileResponse(user_id, nickname, default_folder_id)
         UC-->>FE: 200 { status:"success", data:{ user_id, default_folder_id } }
@@ -108,14 +117,14 @@ Redis cache).
 sequenceDiagram
     autonumber
     participant FE as Mobile App
-    participant Filter as SupabaseJwtAuthenticationFilter
+    participant Filter as JwtAuthenticationFilter
     participant Ctrl as Controller (Analysis/Folder/Notification)
     participant Svc as Service (Query/Folder/Notification)
     participant Redis as Redis (KRX cache)
     participant DB as Postgres
 
     FE->>Filter: GET /analysis/reports/{report_id} (Bearer JWT)
-    Filter->>Filter: SupabaseJwtVerifier.verify(token)
+    Filter->>Filter: JwtVerifier.verify(token)
     alt unauthenticated
         Filter-->>FE: 401 AUTH_INVALID
     else authenticated
