@@ -1,6 +1,9 @@
 package com.hongik.grad.stocks.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.hongik.grad.stocks.dto.KrxQuote;
 import io.netty.channel.ChannelOption;
@@ -20,12 +23,14 @@ import reactor.netty.http.client.HttpClient;
 class KrxClientTest {
 
   private MockWebServer mockWebServer;
+  private NaverQuoteClient naverQuoteClient;
   private KrxClient krxClient;
 
   @BeforeEach
   void setUp() throws IOException {
     mockWebServer = new MockWebServer();
     mockWebServer.start();
+    naverQuoteClient = mock(NaverQuoteClient.class);
 
     String baseUrl = mockWebServer.url("").toString();
     if (baseUrl.endsWith("/")) {
@@ -38,7 +43,7 @@ class KrxClientTest {
             .responseTimeout(Duration.ofSeconds(2));
     WebClient.Builder builder =
         WebClient.builder().clientConnector(new ReactorClientHttpConnector(httpClient));
-    krxClient = new KrxClient(builder, baseUrl, "test-key", "test-secret");
+    krxClient = new KrxClient(builder, baseUrl, "test-key", "test-secret", naverQuoteClient);
   }
 
   @AfterEach
@@ -133,13 +138,16 @@ class KrxClientTest {
   }
 
   @Test
-  @DisplayName("baseUrl이 비어있으면 API 호출 없이 빈 KrxQuote를 반환한다")
-  void emptyBaseUrl_returnsEmptyWithoutApiCall() {
-    KrxClient noUrlClient = new KrxClient(WebClient.builder(), "", "key", "secret");
+  @DisplayName("KIS baseUrl이 비어있으면 KIS를 호출하지 않고 네이버 시세로 폴백한다")
+  void emptyBaseUrl_fallsBackToNaver() {
+    NaverQuoteClient fallback = mock(NaverQuoteClient.class);
+    when(fallback.getQuote("005930")).thenReturn(new KrxQuote("005930", 343000L, 1.78, 6000L));
+    KrxClient noUrlClient = new KrxClient(WebClient.builder(), "", "key", "secret", fallback);
 
     KrxQuote quote = noUrlClient.getQuote("005930");
 
+    verify(fallback).getQuote("005930");
     assertThat(quote.ticker()).isEqualTo("005930");
-    assertThat(quote.currentPrice()).isZero();
+    assertThat(quote.currentPrice()).isEqualTo(343000L);
   }
 }

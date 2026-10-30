@@ -28,6 +28,7 @@ public class KrxClient {
 
   private static final Logger log = LoggerFactory.getLogger(KrxClient.class);
   private static final String TR_ID_INQUIRE_PRICE = "FHKST01010100";
+
   /** KIS 토큰 만료 6시간 전에 미리 갱신. 토큰 실제 유효기간은 24h. */
   private static final Duration TOKEN_REFRESH_AHEAD = Duration.ofHours(6);
 

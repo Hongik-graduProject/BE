@@ -29,15 +29,15 @@ import org.springframework.web.reactive.function.client.WebClient;
  * Verifies Supabase-issued access tokens.
  *
  * <p>Supabase projects sign access tokens with <strong>asymmetric JWT signing keys</strong>
- * (ES256/RS256) published at {@code <project>/auth/v1/.well-known/jwks.json}. This verifier resolves
- * the signing key by the token's {@code kid} header from that JWKS (fetched lazily and cached, with a
- * throttled refresh on key rotation). The backend never issues these tokens — it only verifies
- * signature, expiry, and audience. The audience is pinned to {@code "authenticated"} so {@code anon}
- * tokens are rejected.
+ * (ES256/RS256) published at {@code <project>/auth/v1/.well-known/jwks.json}. This verifier
+ * resolves the signing key by the token's {@code kid} header from that JWKS (fetched lazily and
+ * cached, with a throttled refresh on key rotation). The backend never issues these tokens — it
+ * only verifies signature, expiry, and audience. The audience is pinned to {@code "authenticated"}
+ * so {@code anon} tokens are rejected.
  *
- * <p>Tokens without a {@code kid} header fall back to the legacy HS256 shared secret
- * ({@code supabase.jwt-secret}). This keeps the LOCAL-only {@code DevTokenController} mint flow
- * (Swagger) working, since those tokens are HMAC-signed with that same secret.
+ * <p>Tokens without a {@code kid} header fall back to the legacy HS256 shared secret ({@code
+ * supabase.jwt-secret}). This keeps the LOCAL-only {@code DevTokenController} mint flow (Swagger)
+ * working, since those tokens are HMAC-signed with that same secret.
  */
 @Component
 public class SupabaseJwtVerifier {

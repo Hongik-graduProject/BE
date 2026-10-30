@@ -10,8 +10,6 @@ import com.hongik.grad.disclosures.domain.DisclosureRepository;
 import com.hongik.grad.folders.domain.FavoriteRepository;
 import com.hongik.grad.stocks.client.NaverDailyPriceClient;
 import com.hongik.grad.stocks.client.NaverDailyPriceClient.DailyPrice;
-import com.hongik.grad.stocks.dto.StockDailyPriceItem;
-import com.hongik.grad.stocks.dto.StockDailyPriceResponse;
 import com.hongik.grad.stocks.domain.FinancialStatement;
 import com.hongik.grad.stocks.domain.FinancialStatementRepository;
 import com.hongik.grad.stocks.domain.Stock;
@@ -22,6 +20,8 @@ import com.hongik.grad.stocks.dto.FinanceItem;
 import com.hongik.grad.stocks.dto.KrxQuote;
 import com.hongik.grad.stocks.dto.StockAutocompleteResponse;
 import com.hongik.grad.stocks.dto.StockBriefItem;
+import com.hongik.grad.stocks.dto.StockDailyPriceItem;
+import com.hongik.grad.stocks.dto.StockDailyPriceResponse;
 import com.hongik.grad.stocks.dto.StockDetailResponse;
 import com.hongik.grad.stocks.dto.StockDisclosureItem;
 import com.hongik.grad.stocks.dto.StockDisclosuresResponse;
@@ -114,8 +114,7 @@ public class StockQueryService {
       // 크롤링 실패해도 DB 캐시된 뉴스는 반환
     }
     List<StockNews> rows =
-        stockNewsRepository.findByStockTickerOrderByPublishedAtDesc(
-            ticker, PageRequest.of(0, 20));
+        stockNewsRepository.findByStockTickerOrderByPublishedAtDesc(ticker, PageRequest.of(0, 20));
     return new StockNewsResponse(
         rows.stream()
             .map(
@@ -220,7 +219,8 @@ public class StockQueryService {
     Map<String, KrxQuote> quotes =
         krxQuoteService.getQuotes(result.stream().map(Stock::getTicker).toList()).stream()
             .collect(Collectors.toMap(KrxQuote::ticker, Function.identity(), (a, b) -> a));
-    List<StockBriefItem> items = result.stream().map(s -> toBrief(s, quotes.get(s.getTicker()))).toList();
+    List<StockBriefItem> items =
+        result.stream().map(s -> toBrief(s, quotes.get(s.getTicker()))).toList();
     PaginationMeta meta = PaginationMeta.of(page, size, result.getTotalElements());
     return new StockSearchResponse(items, meta);
   }

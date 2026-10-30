@@ -1,5 +1,6 @@
 package com.hongik.grad.analysis.application;
 
+import com.hongik.grad.analysis.client.MlPredictionClient;
 import com.hongik.grad.analysis.domain.AnalysisReport;
 import com.hongik.grad.analysis.domain.AnalysisReportRepository;
 import com.hongik.grad.analysis.domain.ReportReadStatus;
@@ -12,6 +13,7 @@ import com.hongik.grad.analysis.dto.ReportListItemResponse;
 import com.hongik.grad.analysis.dto.ReportListResponse;
 import com.hongik.grad.analysis.dto.SensitiveMetricResponse;
 import com.hongik.grad.analysis.dto.SourceDisclosureResponse;
+import com.hongik.grad.analysis.dto.StockPredictionResponse;
 import com.hongik.grad.analysis.dto.ThemeItemResponse;
 import com.hongik.grad.analysis.dto.ThemesResponse;
 import com.hongik.grad.common.api.ErrorCode;
@@ -55,6 +57,7 @@ public class AnalysisQueryService {
   private final StockRepository stockRepository;
   private final StockThemeRepository stockThemeRepository;
   private final FinancialMetricCatalogRepository metricCatalogRepository;
+  private final MlPredictionClient mlPredictionClient;
   private final String stage2Version;
 
   public AnalysisQueryService(
@@ -65,6 +68,7 @@ public class AnalysisQueryService {
       StockRepository stockRepository,
       StockThemeRepository stockThemeRepository,
       FinancialMetricCatalogRepository metricCatalogRepository,
+      MlPredictionClient mlPredictionClient,
       @Value("${themesense.stage2-version:themesense-stage2-v1.0}") String stage2Version) {
     this.themeQueryService = themeQueryService;
     this.analysisReportRepository = analysisReportRepository;
@@ -73,7 +77,35 @@ public class AnalysisQueryService {
     this.stockRepository = stockRepository;
     this.stockThemeRepository = stockThemeRepository;
     this.metricCatalogRepository = metricCatalogRepository;
+    this.mlPredictionClient = mlPredictionClient;
     this.stage2Version = stage2Version;
+  }
+
+  /**
+   * ML model forecast for one ticker. Deliberately not transactional and not gated on the stocks
+   * table: it reads no local data, and a ticker outside the model universe is the normal case, not
+   * an error. Any miss returns {@code available=false} so the analysis tab still renders.
+   */
+  public StockPredictionResponse getPrediction(String ticker) {
+    return mlPredictionClient
+        .fetchPrediction(ticker)
+        .map(
+            p ->
+                new StockPredictionResponse(
+                    true,
+                    ticker,
+                    p.date(),
+                    p.close(),
+                    p.predictedExcessReturn60d(),
+                    p.predictedPercentile(),
+                    p.signal(),
+                    p.modelAgreementScore(),
+                    p.scenarioPriceIfKospiFlat(),
+                    p.featureCoverage()))
+        .orElseGet(
+            () ->
+                new StockPredictionResponse(
+                    false, ticker, null, null, null, null, null, null, null, null));
   }
 
   /** C5: ticker existence checked first → 404 if missing. M1: name, modelVersion, predictedAt. */

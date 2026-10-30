@@ -13,7 +13,8 @@ class DevTokenControllerTest {
   private static final String SECRET = "dev-token-test-secret-32-bytes-minimum-aaaa";
 
   private final DevTokenController controller = new DevTokenController(SECRET);
-  private final SupabaseJwtVerifier verifier = new SupabaseJwtVerifier(SECRET);
+  // No Supabase URL: tokens minted here carry no kid, so the verifier takes the HS256 path.
+  private final SupabaseJwtVerifier verifier = new SupabaseJwtVerifier(SECRET, "");
 
   @Test
   void mintsTokenThatPassesSupabaseVerification() {

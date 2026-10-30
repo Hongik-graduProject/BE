@@ -37,8 +37,8 @@ public class NaverFinanceMetricsClient {
   }
 
   /**
-   * 페이지의 종목정보 테이블에서 라벨이 일치하는 값 셀을 찾는다. 네이버는 자주 구조를 바꾸므로
-   * 텍스트 기반의 휴리스틱 매칭 (예: "PER" / "PERl" 등) 으로 안전하게 추출.
+   * 페이지의 종목정보 테이블에서 라벨이 일치하는 값 셀을 찾는다. 네이버는 자주 구조를 바꾸므로 텍스트 기반의 휴리스틱 매칭 (예: "PER" / "PERl" 등) 으로
+   * 안전하게 추출.
    */
   private static BigDecimal findValue(Document doc, String label) {
     for (Element em : doc.select("em")) {

@@ -45,6 +45,13 @@ dart:
   poller:
     enabled: ${DART_POLLER_ENABLED:true}
 
+ml:
+  api:
+    # KOSPI excess-return model service (ML repo, boseong branch FastAPI).
+    # Unset => the analysis tab serves available=false instead of a forecast.
+    base-url: ${ML_API_BASE_URL:}
+    key: ${ML_API_KEY:}
+
 krx:
   api:
     base-url: ${KRX_API_BASE_URL:}

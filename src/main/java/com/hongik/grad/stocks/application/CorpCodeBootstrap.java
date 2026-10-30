@@ -17,8 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 부팅 시 DART corpCode.xml에서 받은 상장 종목 일괄 적재 / 갱신.
  *
- * <p>V3 placeholder seed (K0000*)는 V7 마이그레이션에서 삭제되었고, 그 자리를 이 부트스트랩이
- * 채운다. 이미 같은 ticker가 있으면 corp_code만 갱신하고 다른 필드는 건드리지 않는다.
+ * <p>V3 placeholder seed (K0000*)는 V7 마이그레이션에서 삭제되었고, 그 자리를 이 부트스트랩이 채운다. 이미 같은 ticker가 있으면
+ * corp_code만 갱신하고 다른 필드는 건드리지 않는다.
  */
 @Component
 public class CorpCodeBootstrap {
@@ -28,8 +28,7 @@ public class CorpCodeBootstrap {
   private final StockRepository stockRepository;
   private final DartCorpCodeClient corpCodeClient;
 
-  public CorpCodeBootstrap(
-      StockRepository stockRepository, DartCorpCodeClient corpCodeClient) {
+  public CorpCodeBootstrap(StockRepository stockRepository, DartCorpCodeClient corpCodeClient) {
     this.stockRepository = stockRepository;
     this.corpCodeClient = corpCodeClient;
   }
@@ -42,7 +41,8 @@ public class CorpCodeBootstrap {
     long total = stockRepository.count();
     log.info(
         "CorpCodeBootstrap: {} total stocks, {} pending corp_code; fetching DART corpCode.xml…",
-        total, pending);
+        total,
+        pending);
     Map<String, CorpInfo> map = corpCodeClient.fetchAll();
     if (map.isEmpty()) {
       log.warn("CorpCodeBootstrap: DART returned empty map; will retry on next boot");
@@ -68,7 +68,8 @@ public class CorpCodeBootstrap {
     }
     log.info(
         "CorpCodeBootstrap: inserted={} new stocks, updated corp_code for {} existing rows",
-        inserted, updated);
+        inserted,
+        updated);
   }
 
   private static String safeName(String corpName, String fallback) {

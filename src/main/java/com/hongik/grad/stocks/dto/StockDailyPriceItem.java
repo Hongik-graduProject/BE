@@ -4,13 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
 
 public record StockDailyPriceItem(
-    LocalDate date,
-    Long close,
-    Long change,
-    Long open,
-    Long high,
-    Long low,
-    Long volume) {
+    LocalDate date, Long close, Long change, Long open, Long high, Long low, Long volume) {
 
   @JsonProperty("change_rate")
   public Double changeRate() {

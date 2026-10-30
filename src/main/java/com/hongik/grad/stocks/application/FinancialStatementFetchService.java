@@ -22,9 +22,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * DART fnlttSinglAcntAll 응답에서 손익계산서(CIS·IS)·재무상태표(BS)·현금흐름표(CF)를 다년치
- * 분기·연간으로 받아 financial_statements에 한 row(period·sj_div 단위)씩 적재한다. 최신 row가
- * 5건 이상 있으면 skip.
+ * DART fnlttSinglAcntAll 응답에서 손익계산서(CIS·IS)·재무상태표(BS)·현금흐름표(CF)를 다년치 분기·연간으로 받아
+ * financial_statements에 한 row(period·sj_div 단위)씩 적재한다. 최신 row가 5건 이상 있으면 skip.
  */
 @Service
 public class FinancialStatementFetchService {
@@ -34,6 +33,7 @@ public class FinancialStatementFetchService {
 
   /** DART 보고서 코드. */
   private static final String R_Q1 = "11013";
+
   private static final String R_HY = "11012";
   private static final String R_Q3 = "11014";
   private static final String R_ANNUAL = "11011";
@@ -71,9 +71,12 @@ public class FinancialStatementFetchService {
     }
 
     // 분기 보고서: 작년치 1Q·반기·3Q + 올해 1Q·반기·3Q (있는 만큼)
-    fetchAndPersist(stock, corp, currentYear - 1, R_Q1, PeriodType.QUARTERLY, (currentYear - 1) + "Q1");
-    fetchAndPersist(stock, corp, currentYear - 1, R_HY, PeriodType.QUARTERLY, (currentYear - 1) + "H1");
-    fetchAndPersist(stock, corp, currentYear - 1, R_Q3, PeriodType.QUARTERLY, (currentYear - 1) + "Q3");
+    fetchAndPersist(
+        stock, corp, currentYear - 1, R_Q1, PeriodType.QUARTERLY, (currentYear - 1) + "Q1");
+    fetchAndPersist(
+        stock, corp, currentYear - 1, R_HY, PeriodType.QUARTERLY, (currentYear - 1) + "H1");
+    fetchAndPersist(
+        stock, corp, currentYear - 1, R_Q3, PeriodType.QUARTERLY, (currentYear - 1) + "Q3");
     fetchAndPersist(stock, corp, currentYear, R_Q1, PeriodType.QUARTERLY, currentYear + "Q1");
     fetchAndPersist(stock, corp, currentYear, R_HY, PeriodType.QUARTERLY, currentYear + "H1");
     fetchAndPersist(stock, corp, currentYear, R_Q3, PeriodType.QUARTERLY, currentYear + "Q3");
@@ -135,10 +138,7 @@ public class FinancialStatementFetchService {
             pick(lines, "자본총계"));
       } else if ("CF".equals(sjDiv)) {
         fs.applyCashFlow(
-            pick(lines, "영업활동"),
-            pick(lines, "투자활동"),
-            pick(lines, "재무활동"),
-            pick(lines, "기말의현금"));
+            pick(lines, "영업활동"), pick(lines, "투자활동"), pick(lines, "재무활동"), pick(lines, "기말의현금"));
       } else {
         // CIS / IS — 손익계산서
         fs.applyIncomeStatement(
@@ -159,7 +159,10 @@ public class FinancialStatementFetchService {
     }
     log.info(
         "Persisted DART finance for {} {} ({}) → groups={}",
-        stock.getTicker(), period, fsDiv, byDiv.keySet());
+        stock.getTicker(),
+        period,
+        fsDiv,
+        byDiv.keySet());
   }
 
   private static String normalizeDiv(String div) {
@@ -191,8 +194,7 @@ public class FinancialStatementFetchService {
   }
 
   /** ROE = netIncome / totalEquity, ROA = netIncome / totalAssets. asRoa=true → ROA. */
-  private static BigDecimal ratio(
-      FinancialStatementRepository repo, String ticker, boolean asRoa) {
+  private static BigDecimal ratio(FinancialStatementRepository repo, String ticker, boolean asRoa) {
     return repo.findByStockTickerOrderByPeriodDesc(ticker).stream()
         .filter(f -> f.getPeriodType() == PeriodType.ANNUAL)
         .filter(f -> "CIS".equals(f.getSjDiv()))

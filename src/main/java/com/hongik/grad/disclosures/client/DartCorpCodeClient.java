@@ -21,8 +21,7 @@ import org.springframework.stereotype.Component;
 public class DartCorpCodeClient {
 
   private static final Logger log = LoggerFactory.getLogger(DartCorpCodeClient.class);
-  private static final String URL =
-      "https://opendart.fss.or.kr/api/corpCode.xml?crtfc_key=%s";
+  private static final String URL = "https://opendart.fss.or.kr/api/corpCode.xml?crtfc_key=%s";
 
   private final String apiKey;
 
@@ -33,9 +32,7 @@ public class DartCorpCodeClient {
   /** {@code ticker(6자리)} 키로 DART 회사 정보 매핑. */
   public record CorpInfo(String corpCode, String corpName) {}
 
-  /**
-   * 결과 맵: {@code ticker (6자리) -> CorpInfo(corp_code, corp_name)}. 실패 시 빈 맵.
-   */
+  /** 결과 맵: {@code ticker (6자리) -> CorpInfo(corp_code, corp_name)}. 실패 시 빈 맵. */
   public Map<String, CorpInfo> fetchAll() {
     if (apiKey == null || apiKey.isBlank()) return Map.of();
     try {
@@ -87,7 +84,8 @@ public class DartCorpCodeClient {
             stockCode = null;
           }
         }
-        case XMLStreamConstants.CHARACTERS, XMLStreamConstants.CDATA -> text.append(reader.getText());
+        case XMLStreamConstants.CHARACTERS, XMLStreamConstants.CDATA ->
+            text.append(reader.getText());
         case XMLStreamConstants.END_ELEMENT -> {
           String name = reader.getLocalName();
           String value = text.toString().trim();

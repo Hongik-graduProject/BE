@@ -11,7 +11,9 @@ import org.springframework.stereotype.Component;
 /**
  * 네이버 금융 실시간 시세 폴링 API 비공식 호출. 인증 불필요.
  *
- * <p>응답 예시: <pre>
+ * <p>응답 예시:
+ *
+ * <pre>
  * {
  *   "datas": [{
  *     "itemCode": "005930",

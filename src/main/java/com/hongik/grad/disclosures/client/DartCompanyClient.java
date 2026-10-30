@@ -51,7 +51,11 @@ public class DartCompanyClient {
   }
 
   public record CompanyInfo(
-      String corpName, String ceoName, String establishedDate, String industryCode, String corpClass) {
+      String corpName,
+      String ceoName,
+      String establishedDate,
+      String industryCode,
+      String corpClass) {
     public static CompanyInfo empty() {
       return new CompanyInfo("", "", "", "", "");
     }

@@ -41,8 +41,7 @@ public class SearchHistoryService {
     repository
         .findByUserIdAndKeyword(userId, normalized)
         .ifPresentOrElse(
-            SearchHistory::touch,
-            () -> repository.save(new SearchHistory(userId, normalized)));
+            SearchHistory::touch, () -> repository.save(new SearchHistory(userId, normalized)));
   }
 
   /** keyword 지정 시 해당 항목만, null이면 전체 삭제. */

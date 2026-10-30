@@ -14,7 +14,9 @@ import org.junit.jupiter.api.Test;
 
 class SupabaseJwtVerifierTest {
 
-  private final SupabaseJwtVerifier verifier = new SupabaseJwtVerifier(JwtTestFactory.TEST_SECRET);
+  // No Supabase URL: JwtTestFactory tokens carry no kid, so the verifier takes the HS256 path.
+  private final SupabaseJwtVerifier verifier =
+      new SupabaseJwtVerifier(JwtTestFactory.TEST_SECRET, "");
 
   @Test
   @DisplayName("유효한 토큰은 sub UUID와 email 클레임을 반환한다")

@@ -3,6 +3,7 @@ package com.hongik.grad.analysis.api;
 import com.hongik.grad.analysis.application.AnalysisQueryService;
 import com.hongik.grad.analysis.dto.ReportDetailResponse;
 import com.hongik.grad.analysis.dto.ReportListResponse;
+import com.hongik.grad.analysis.dto.StockPredictionResponse;
 import com.hongik.grad.analysis.dto.ThemesResponse;
 import com.hongik.grad.auth.principal.AuthUser;
 import com.hongik.grad.common.api.ApiResponse;
@@ -32,6 +33,13 @@ public class AnalysisController {
       @AuthenticationPrincipal AuthUser user, @PathVariable("ticker") String ticker) {
     log.debug("getThemes ticker={} user={}", ticker, user.id());
     return ApiResponse.success(analysisQueryService.getThemes(ticker));
+  }
+
+  @GetMapping("/{ticker}/prediction")
+  public ApiResponse<StockPredictionResponse> getPrediction(
+      @AuthenticationPrincipal AuthUser user, @PathVariable("ticker") String ticker) {
+    log.debug("getPrediction ticker={} user={}", ticker, user.id());
+    return ApiResponse.success(analysisQueryService.getPrediction(ticker));
   }
 
   @GetMapping("/{ticker}/reports")

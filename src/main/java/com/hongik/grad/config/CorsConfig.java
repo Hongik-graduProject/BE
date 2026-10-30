@@ -13,12 +13,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * <p>No wildcard {@code *} origin: only Vercel-hosted frontends and local dev. Supabase domains do
  * not need to be listed here because the browser talks to Supabase directly, not via our backend.
  *
- * <p>Exposed as a {@link CorsConfigurationSource} bean (not a standalone {@code CorsFilter}) so that
- * {@code SecurityConfig} can wire it into the Spring Security filter chain via {@code http.cors()}.
- * This is essential: a standalone {@code CorsFilter} bean runs <em>after</em> the security chain, so
- * security-rejected responses (401/403) would be written without {@code Access-Control-Allow-Origin}
- * and the browser would surface them as opaque network errors. Wiring CORS into the security chain
- * makes the headers present on error responses too.
+ * <p>Exposed as a {@link CorsConfigurationSource} bean (not a standalone {@code CorsFilter}) so
+ * that {@code SecurityConfig} can wire it into the Spring Security filter chain via {@code
+ * http.cors()}. This is essential: a standalone {@code CorsFilter} bean runs <em>after</em> the
+ * security chain, so security-rejected responses (401/403) would be written without {@code
+ * Access-Control-Allow-Origin} and the browser would surface them as opaque network errors. Wiring
+ * CORS into the security chain makes the headers present on error responses too.
  */
 @Configuration
 public class CorsConfig {

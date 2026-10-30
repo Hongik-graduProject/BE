@@ -14,7 +14,9 @@ import java.util.UUID;
 @Table(
     name = "search_history",
     uniqueConstraints =
-        @UniqueConstraint(name = "uq_search_user_keyword", columnNames = {"user_id", "keyword"}))
+        @UniqueConstraint(
+            name = "uq_search_user_keyword",
+            columnNames = {"user_id", "keyword"}))
 public class SearchHistory {
 
   @Id

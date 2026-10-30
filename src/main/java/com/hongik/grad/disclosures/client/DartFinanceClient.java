@@ -50,7 +50,10 @@ public class DartFinanceClient {
         if (!"013".equals(status)) {
           log.debug(
               "DART finance status={} corp={} year={} reprt={}",
-              status, corpCode, bsnsYear, reprtCode);
+              status,
+              corpCode,
+              bsnsYear,
+              reprtCode);
         }
         return List.of();
       }

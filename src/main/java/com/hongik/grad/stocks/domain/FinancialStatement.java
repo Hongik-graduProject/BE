@@ -76,30 +76,63 @@ public class FinancialStatement {
 
   // 손익계산서 확장
   @Column private Long sga;
-  @Column(name = "non_operating_income") private Long nonOperatingIncome;
-  @Column(name = "non_operating_expense") private Long nonOperatingExpense;
-  @Column(name = "pretax_income") private Long pretaxIncome;
-  @Column(name = "tax_expense") private Long taxExpense;
-  @Column(name = "controlling_net_income") private Long controllingNetIncome;
-  @Column(name = "noncontrolling_net_income") private Long noncontrollingNetIncome;
+
+  @Column(name = "non_operating_income")
+  private Long nonOperatingIncome;
+
+  @Column(name = "non_operating_expense")
+  private Long nonOperatingExpense;
+
+  @Column(name = "pretax_income")
+  private Long pretaxIncome;
+
+  @Column(name = "tax_expense")
+  private Long taxExpense;
+
+  @Column(name = "controlling_net_income")
+  private Long controllingNetIncome;
+
+  @Column(name = "noncontrolling_net_income")
+  private Long noncontrollingNetIncome;
 
   // 재무상태표 확장
-  @Column(name = "current_assets") private Long currentAssets;
-  @Column(name = "non_current_assets") private Long nonCurrentAssets;
-  @Column(name = "current_liabilities") private Long currentLiabilities;
-  @Column(name = "non_current_liabilities") private Long nonCurrentLiabilities;
-  @Column(name = "capital_stock") private Long capitalStock;
-  @Column(name = "retained_earnings") private Long retainedEarnings;
+  @Column(name = "current_assets")
+  private Long currentAssets;
+
+  @Column(name = "non_current_assets")
+  private Long nonCurrentAssets;
+
+  @Column(name = "current_liabilities")
+  private Long currentLiabilities;
+
+  @Column(name = "non_current_liabilities")
+  private Long nonCurrentLiabilities;
+
+  @Column(name = "capital_stock")
+  private Long capitalStock;
+
+  @Column(name = "retained_earnings")
+  private Long retainedEarnings;
 
   // 현금흐름표
-  @Column(name = "operating_cash_flow") private Long operatingCashFlow;
-  @Column(name = "investing_cash_flow") private Long investingCashFlow;
-  @Column(name = "financing_cash_flow") private Long financingCashFlow;
-  @Column(name = "ending_cash") private Long endingCash;
+  @Column(name = "operating_cash_flow")
+  private Long operatingCashFlow;
+
+  @Column(name = "investing_cash_flow")
+  private Long investingCashFlow;
+
+  @Column(name = "financing_cash_flow")
+  private Long financingCashFlow;
+
+  @Column(name = "ending_cash")
+  private Long endingCash;
 
   // 비율 지표
-  @Column(precision = 7, scale = 4) private BigDecimal roe;
-  @Column(precision = 7, scale = 4) private BigDecimal roa;
+  @Column(precision = 7, scale = 4)
+  private BigDecimal roe;
+
+  @Column(precision = 7, scale = 4)
+  private BigDecimal roa;
 
   @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)
@@ -185,30 +218,97 @@ public class FinancialStatement {
     return updatedAt;
   }
 
-  public String getSjDiv() { return sjDiv; }
-  public String getFsDiv() { return fsDiv; }
-  public Long getSga() { return sga; }
-  public Long getNonOperatingIncome() { return nonOperatingIncome; }
-  public Long getNonOperatingExpense() { return nonOperatingExpense; }
-  public Long getPretaxIncome() { return pretaxIncome; }
-  public Long getTaxExpense() { return taxExpense; }
-  public Long getControllingNetIncome() { return controllingNetIncome; }
-  public Long getNoncontrollingNetIncome() { return noncontrollingNetIncome; }
-  public Long getCurrentAssets() { return currentAssets; }
-  public Long getNonCurrentAssets() { return nonCurrentAssets; }
-  public Long getCurrentLiabilities() { return currentLiabilities; }
-  public Long getNonCurrentLiabilities() { return nonCurrentLiabilities; }
-  public Long getCapitalStock() { return capitalStock; }
-  public Long getRetainedEarnings() { return retainedEarnings; }
-  public Long getOperatingCashFlow() { return operatingCashFlow; }
-  public Long getInvestingCashFlow() { return investingCashFlow; }
-  public Long getFinancingCashFlow() { return financingCashFlow; }
-  public Long getEndingCash() { return endingCash; }
-  public BigDecimal getRoe() { return roe; }
-  public BigDecimal getRoa() { return roa; }
+  public String getSjDiv() {
+    return sjDiv;
+  }
 
-  public void assignSjDiv(String sjDiv) { this.sjDiv = sjDiv; }
-  public void assignFsDiv(String fsDiv) { this.fsDiv = fsDiv; }
+  public String getFsDiv() {
+    return fsDiv;
+  }
+
+  public Long getSga() {
+    return sga;
+  }
+
+  public Long getNonOperatingIncome() {
+    return nonOperatingIncome;
+  }
+
+  public Long getNonOperatingExpense() {
+    return nonOperatingExpense;
+  }
+
+  public Long getPretaxIncome() {
+    return pretaxIncome;
+  }
+
+  public Long getTaxExpense() {
+    return taxExpense;
+  }
+
+  public Long getControllingNetIncome() {
+    return controllingNetIncome;
+  }
+
+  public Long getNoncontrollingNetIncome() {
+    return noncontrollingNetIncome;
+  }
+
+  public Long getCurrentAssets() {
+    return currentAssets;
+  }
+
+  public Long getNonCurrentAssets() {
+    return nonCurrentAssets;
+  }
+
+  public Long getCurrentLiabilities() {
+    return currentLiabilities;
+  }
+
+  public Long getNonCurrentLiabilities() {
+    return nonCurrentLiabilities;
+  }
+
+  public Long getCapitalStock() {
+    return capitalStock;
+  }
+
+  public Long getRetainedEarnings() {
+    return retainedEarnings;
+  }
+
+  public Long getOperatingCashFlow() {
+    return operatingCashFlow;
+  }
+
+  public Long getInvestingCashFlow() {
+    return investingCashFlow;
+  }
+
+  public Long getFinancingCashFlow() {
+    return financingCashFlow;
+  }
+
+  public Long getEndingCash() {
+    return endingCash;
+  }
+
+  public BigDecimal getRoe() {
+    return roe;
+  }
+
+  public BigDecimal getRoa() {
+    return roa;
+  }
+
+  public void assignSjDiv(String sjDiv) {
+    this.sjDiv = sjDiv;
+  }
+
+  public void assignFsDiv(String fsDiv) {
+    this.fsDiv = fsDiv;
+  }
 
   /** DART fnlttSinglAcntAll 응답을 한 번에 흡수. null 인자는 변경하지 않는다. */
   public void applyDartFinance(
@@ -285,10 +385,7 @@ public class FinancialStatement {
 
   /** 현금흐름표 라인 일괄 적용. null은 무시. */
   public void applyCashFlow(
-      Long operatingCashFlow,
-      Long investingCashFlow,
-      Long financingCashFlow,
-      Long endingCash) {
+      Long operatingCashFlow, Long investingCashFlow, Long financingCashFlow, Long endingCash) {
     if (operatingCashFlow != null) this.operatingCashFlow = operatingCashFlow;
     if (investingCashFlow != null) this.investingCashFlow = investingCashFlow;
     if (financingCashFlow != null) this.financingCashFlow = financingCashFlow;
