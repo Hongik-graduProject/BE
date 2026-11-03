@@ -48,12 +48,12 @@ class AuthServiceTest {
   @DisplayName("가입 시 이메일은 소문자로 정규화되고 비밀번호는 해시로만 저장된다")
   void signupNormalizesEmailAndHashesPassword() {
     when(profileRepository.existsByEmail("a@b.com")).thenReturn(false);
-    when(profileRepository.save(any(Profile.class))).thenAnswer(inv -> inv.getArgument(0));
+    when(profileRepository.saveAndFlush(any(Profile.class))).thenAnswer(inv -> inv.getArgument(0));
 
     SignupResponse response = authService.signup("  A@B.com ", "secret1", "kim");
 
     ArgumentCaptor<Profile> saved = ArgumentCaptor.forClass(Profile.class);
-    verify(profileRepository).save(saved.capture());
+    verify(profileRepository).saveAndFlush(saved.capture());
     assertThat(saved.getValue().getEmail()).isEqualTo("a@b.com");
     assertThat(saved.getValue().getPasswordHash()).isNotEqualTo("secret1");
     assertThat(passwordEncoder.matches("secret1", saved.getValue().getPasswordHash())).isTrue();
@@ -65,7 +65,7 @@ class AuthServiceTest {
   @DisplayName("닉네임을 주지 않으면 이메일 local part 를 쓴다")
   void signupFallsBackToEmailLocalPart() {
     when(profileRepository.existsByEmail("hongik@example.com")).thenReturn(false);
-    when(profileRepository.save(any(Profile.class))).thenAnswer(inv -> inv.getArgument(0));
+    when(profileRepository.saveAndFlush(any(Profile.class))).thenAnswer(inv -> inv.getArgument(0));
 
     assertThat(authService.signup("hongik@example.com", "secret1", null).nickname())
         .isEqualTo("hongik");

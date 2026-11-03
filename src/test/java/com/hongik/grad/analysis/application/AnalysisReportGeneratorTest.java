@@ -2,6 +2,7 @@ package com.hongik.grad.analysis.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -244,6 +245,28 @@ class AnalysisReportGeneratorTest {
     assertThat(result.get().getExpectedCar()).isEqualByComparingTo(new BigDecimal("1.3600"));
     // All 4 sensitivities contributed (delta was non-empty for all)
     assertThat(result.get().getMetricContributions()).hasSize(4);
+  }
+
+  @Test
+  @DisplayName("재무 데이터가 없으면 기여도 0 보고서를 남기지 않고 건너뛴다")
+  void generate_skipsWithoutFinancialStatements() throws Exception {
+    Stock stock = new Stock("005930", "삼성전자", Market.KOSPI);
+    Theme theme = newTheme(1L, "AI/반도체");
+    Disclosure disclosure = newDisclosure(100L, stock);
+
+    when(themeRouter.route(disclosure))
+        .thenReturn(Optional.of(new RoutingResult(1L, "AI/반도체", 0.9)));
+    when(analysisReportRepository.findByStockTickerAndDisclosureId("005930", 100L))
+        .thenReturn(Optional.empty());
+    when(themeRepository.findById(1L)).thenReturn(Optional.of(theme));
+    when(sensitivityRepository.findByThemeIdAndModelVersionOrderByRankAsc(
+            1L, "themesense-stage2-v1.0"))
+        .thenReturn(List.of(newSensitivity(theme, "op_margin", 0.3, 0.3, 1, Direction.POSITIVE)));
+    when(metricDeltaCalculator.computeForTicker("005930"))
+        .thenReturn(MetricDeltaCalculator.DeltaSnapshot.empty());
+
+    assertThat(generator.generate(disclosure)).isEmpty();
+    verify(analysisReportRepository, never()).save(any());
   }
 
   private Theme newTheme(Long id, String name) throws Exception {

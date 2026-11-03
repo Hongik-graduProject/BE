@@ -52,8 +52,10 @@ public class AuthService {
     if (profileRepository.existsByEmail(normalized)) {
       throw new DomainException(ErrorCode.DUPLICATE, "이미 가입된 이메일입니다");
     }
+    // Flush so @CreationTimestamp is populated before created_at is read into the response; the
+    // assigned UUID id defers the INSERT (and timestamp generation) to flush otherwise.
     Profile profile =
-        profileRepository.save(
+        profileRepository.saveAndFlush(
             Profile.signup(
                 normalized,
                 passwordEncoder.encode(password),

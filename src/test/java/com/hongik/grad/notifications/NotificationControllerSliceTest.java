@@ -73,6 +73,8 @@ class NotificationControllerSliceTest {
             501L,
             null,
             false,
+            1.9529,
+            "반도체",
             OffsetDateTime.now());
     NotificationListResponse response =
         new NotificationListResponse(List.of(item), 5L, PaginationMeta.of(1, 20, 1));
@@ -86,6 +88,8 @@ class NotificationControllerSliceTest {
         .andExpect(jsonPath("$.data.notifications[0].type").value("disclosure_report"))
         .andExpect(jsonPath("$.data.notifications[0].stock_name").value("삼성전자"))
         .andExpect(jsonPath("$.data.notifications[0].report_id").value(501))
+        .andExpect(jsonPath("$.data.notifications[0].expected_car").value(1.9529))
+        .andExpect(jsonPath("$.data.notifications[0].applied_theme_name").value("반도체"))
         .andExpect(jsonPath("$.data.unread_count").value(5))
         .andExpect(jsonPath("$.data.pagination.total_count").value(1));
   }

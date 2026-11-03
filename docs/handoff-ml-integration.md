@@ -144,10 +144,19 @@ google-java-format 으로 재정렬됐다. **전부 줄바꿈·주석 래핑만 
 ```bash
 git checkout boseong
 # artifacts/ 에 Colab V2.4 산출물 4 개를 넣는다 (§4-1 참조)
-python scripts/validate_artifacts.py     # 성공해야 한다
+# 또는 KOSPI_API_ARTIFACT_DIR 로 산출물 폴더를 직접 가리킨다
+make validate                            # 성공해야 한다
 make run                                 # uvicorn, 포트 8000
 curl http://localhost:8000/health/ready  # 200 이어야 한다
 ```
+
+`python scripts/validate_artifacts.py` 를 그대로 실행하면 `ModuleNotFoundError: app`
+으로 실패한다. Python 은 스크립트 폴더만 import 경로에 넣기 때문이다.
+`make validate` 또는 `PYTHONPATH=. python scripts/validate_artifacts.py` 를 쓴다.
+
+Python 은 3.13 을 쓴다. 모델은 scikit-learn 1.6.1 로 저장되었으므로
+`pip install -r requirements-dev.txt "scikit-learn==1.6.1"` 로 버전을 맞춘다.
+macOS 에서는 XGBoost 가 OpenMP 를 요구하므로 먼저 `brew install libomp` 를 한다.
 
 서비스 환경변수는 `KOSPI_API_` 접두사를 쓴다. API 키는 `KOSPI_API_API_KEY`.
 `KOSPI_API_ALLOWED_ORIGINS` 는 BE 가 서버 사이드에서 호출하므로 신경쓰지 않아도 된다.
@@ -242,7 +251,17 @@ ML FastAPI 가 뜨려면 `artifacts/` 에 Colab V2.4 실행 산출물이 있어�
 `scripts/export_api_artifacts.py` 를 돌리면 `kospi_api_artifacts_v24.zip` 으로 생성된다.
 **Colab 을 돌릴 수 있는 사람이 뽑아서 전달해야 한다.**
 
-없는 동안의 동작: ML 이 503 → BE 는 `available=false`. 화면은 깨지지 않는다.
+없는 동안의 동작: BE 는 `available=false` 를 준다. 화면은 깨지지 않는다.
+(2026-11-01 정정) 이때 ML 의 `/api/v1/predictions/{code}` 는 503 이 아니라 500 을
+준다. 빈 DataFrame 에서 `Code` 컬럼을 찾다가 KeyError 가 나기 때문이다. 503 을
+주는 것은 `/health/ready` 와 `/model/info` 뿐이다. BE 는 모든 예외를 잡으므로
+결과는 같지만, WARN 로그에는 500 이 찍힌다.
+
+(2026-11-01 정정) 예측 조회에 실제로 필요한 파일은
+`latest_kospi_predictions_v24.csv` 하나다. `ArtifactStore.load()` 가 CSV 를 먼저
+읽으므로 joblib 이 없어도 조회는 200 을 준다. 그 경우 `/health/ready` 만 503 이다.
+
+**(2026-11-01) 이 블로커는 해소되었다. §9 참조.**
 
 그래서 **실제 ML 응답으로 end-to-end 검증을 하지 못했다.** 실제 payload 모양이
 단위 테스트의 목 데이터와 다르면 조용히 `available=false` 로 떨어진다. 그때는
@@ -263,6 +282,8 @@ HTTP MockWebServer 를 쓰고 토큰 응답을 큐에 넣지 않는다. 맞을 �
 
 제대로 고치려면 스킴을 설정 가능하게 바꾸는 **운영 코드 변경**이 필요하다. ML 연동과
 무관한 별개 결함이라 손대지 않았다. 별도 이슈로 처리할 것.
+
+**(2026-11-01) 고쳤다. §9 참조.**
 
 ### 4-3. 전체 테스트 스위트 미실행
 
@@ -493,7 +514,200 @@ dry-run 은 Docker 를 켜고 다음을 돌려서 꼭 확인할 것.
 - `architecture.md` 의 1 번 시퀀스 다이어그램에서 Supabase Auth 참여자를 빼고
   `AuthController` 와 `AuthService` 가 직접 토큰을 발급하는 흐름으로 다시 그렸다.
 
+(2026-11-01 정정) 아래 문단은 정확하지 않다. V9 SQL 주석, `JwtVerifierTest`,
+`AuthServiceTest` 의 javadoc, `docs/schema-migration.md` 본문에도 Supabase 언급이
+남아 있다. 전부 이력 설명이라 동작에는 영향이 없다.
+
 이제 `src/`, `README.md`, `docs/` 어디에도 Supabase 참조가 없다. 유일한 예외는
 두 군데의 의도적인 이력 설명이다. `V1__init_schema.sql` 은 불변 파일이라 당시
 주석을 그대로 두었고, `Profile.java` 의 javadoc 은 왜 자격증명 컬럼이 nullable
 인지 설명하려고 전환 사실을 언급한다.
+
+---
+
+## 9. 2026-11-01 후속 작업
+
+### 9-1. ML 산출물 검증
+
+`ML_result/` 로 받은 Colab V2.4 산출물을 검증했다. 필수 4 개는 모두 있다.
+선택 파일 `runtime_versions_v24.json` 은 없다.
+
+| 파일 | 결과 |
+|---|---|
+| `ensemble_pipeline_v24.joblib` | 키 7 개 (`ridge`, `xgb`, `ensemble_xgb_weight`=0.7, `target_clip`, `features`, `target`, `version`). scikit-learn 1.6.1 로 저장됨 |
+| `latest_kospi_predictions_v24.csv` | 669 행, 필수 컬럼 전부 있음, NaN·중복 코드 없음. 기준일은 651 종목이 2026-10-30 이고 18 종목이 그 이전이다 |
+| `feature_schema_v24.json` | 31 개 Feature. 순서가 모델 bundle 과 같다 |
+| `data_manifest_v24.json` | 2015-01-01 ~ 2026-10-31, 학습 2024~2026, mean Rank IC 0.116 |
+
+나머지 7 개(`oos_predictions_v24.parquet`, `walk_forward_metrics_v24.csv` 등)는
+API 가 읽지 않는 분석용 산출물이다.
+
+`make validate` 는 `features=31, predictions=669, latest_date=2026-10-30` 으로
+통과했다. CSV 의 Feature 로 Ridge·XGBoost 를 다시 돌려 보았다. 그 결과가 CSV 의
+`Predicted_Excess_Return_60D` 와 1e-16 이내로 일치했다. ML 레포 `pytest` 는 3/3
+통과했다.
+
+데이터에서 FE 가 알아야 할 점은 두 가지다.
+
+1. `Predicted_Excess_Return_60D` 의 최댓값이 +1.5% 다. 거의 모든 종목이
+   음수이므로 "Top 10%" 도 대부분 KOSPI 대비 마이너스다. 상대 순위로만 표시한다.
+2. `Sector` 컬럼은 669 행 전부 비어 있다.
+
+### 9-2. End-to-end 확인
+
+ML 서비스(`KOSPI_API_ARTIFACT_DIR` 로 `ML_result/` 지정)와 BE 를 로컬에서 띄웠다.
+가입, 로그인, 예측 조회를 실제로 호출했다.
+
+- `005930` → `available=true`, `signal="Above Average"`, `as_of_date=2026-10-30`
+- `000660` → `available=true`
+- `999999` → `available=false`
+- 토큰 없음 → 401
+
+실제 payload 는 §1 계약과 일치한다. `MlPredictionJson` 은 수정할 필요가 없었다.
+
+앱(FE)까지 붙인 E2E 도 확인했다 (2026-11-01). iOS 시뮬레이터(iPhone 17)에서
+Flutter integration test 로 앱을 띄우고, 로그인 화면에 입력해 로그인한 뒤
+`005930`, `000660` 의 분석 탭을 열었다. 두 종목 모두 예측 카드가 그려졌고,
+ML 서비스 로그에 `GET /api/v1/predictions/{ticker}` 200 이 두 번 찍혔다.
+DART 키가 없어 `stocks` 가 비어 있으므로, 이 두 종목은 임시 DB 에 직접 넣었다.
+테스트 파일은 임시로 만들고 지웠다. 다시 돌리려면 `integration_test` dev dependency 를
+추가해야 한다.
+
+### 9-3. 이번에 바꾼 것 (커밋하지 않음)
+
+BE:
+
+| 파일 | 변경 |
+|---|---|
+| `stocks/client/KrxClient.java` | 시세 URI 를 baseUrl 에서 만든다. `https` 하드코딩 제거. 운영 URL 은 전과 같다 |
+| `auth/application/AuthService.java` | `signup` 이 `saveAndFlush` 를 쓴다. 전에는 응답의 `created_at` 이 null 이었다 |
+| `stocks/domain/FinancialStatement.java` | `sjDiv` 기본값 `"CIS"`. V8 컬럼 DEFAULT 와 맞춘다 |
+| `db/migration/V10__remove_kosdaq_placeholder_stocks.sql` | 신규. V7 이 빠뜨린 `Q%` placeholder 150 개를 지운다 |
+| 테스트 5 개 | `KrxClientTest`, `AuthServiceTest`, `AuthOnboardingE2ETest`(created_at 검증 추가), `FavoriteRepositoryTest`, `FlywayMigrationSmokeTest`(최종 상태 검증으로 재작성) |
+| `docs/schema-migration.md` | placeholder 제거 사실 추가 |
+
+V10 주의: 기존 로컬 DB 에서 다음 부팅 때 실행된다. V3 seed 형식
+(`^Q[0-9]{5}$`) 과 정확히 맞는 종목과, 그 종목에 걸린 관심종목·알림·보고서 행이
+지워진다. 실제 종목코드는 DART `stock_code` 의 6 자리 숫자라서 실제 데이터는
+지워지지 않는다.
+
+FE:
+
+| 파일 | 변경 |
+|---|---|
+| `lib/models/analysis_model.dart` | `PredictionResponse` 추가 |
+| `lib/services/api_service.dart` | `getStockPrediction(ticker)` 추가 |
+| `lib/screens/company/analysis_tab.dart` | 예측 카드 추가. 요청이 실패하면 빈 상태를 보여 주고 다른 섹션은 그대로 동작한다 |
+| `test/prediction_model_test.dart` | 신규. available true/false 파싱 |
+
+카드 문구는 ML 측 요구를 따른다. `model_agreement_score` 는 "모델 일치도" 로만
+표시하고, 확률이라는 말은 쓰지 않는다. 손익 색상도 쓰지 않는다.
+
+### 9-4. 검증 결과
+
+- BE `./gradlew build`: 성공. 220/220 통과. `FlywayMigrationSmokeTest`,
+  `SignupGoldenPathE2ETest`, `AuthOnboardingE2ETest` 를 포함한 Testcontainers
+  테스트를 전부 돌렸다. `spotlessCheck` 도 통과했다.
+- V1~V10 을 빈 Postgres 15 에 적용했다. 전부 성공했다.
+- FE `flutter analyze`: 이슈 없음. `test/prediction_model_test.dart` 2/2 통과.
+- FE `test/widget_test.dart` 는 실패한다. 변경 전 HEAD 에서도 같은 이유
+  ("A Timer is still pending")로 실패하므로 이번 변경과 무관하다.
+
+### 9-5. 실행 환경 주의
+
+- Gradle 8.10 은 JDK 26 에서 `Unsupported class file major version 70` 으로
+  실패한다. `JAVA_HOME` 을 JDK 21 로 지정한다.
+- `.env.example` 의 `JWT_SECRET` placeholder 는 UTF-8 로 31 바이트다. 그대로
+  `.env` 에 복사하면 기동 시점에 실패한다. 로컬에서는 이 줄을 지운다.
+- 기존 Docker 볼륨 `be_postgres-data` 는 `postgres` 역할이 없는 상태로
+  초기화되어 있다. docker-compose 기본 계정으로는 접속이 실패한다. 이 볼륨은
+  건드리지 않았다. 새로 쓰려면 볼륨을 직접 확인한 뒤 정리한다.
+
+### 9-6. 남은 일 (§10 에서 갱신)
+
+§10-6 을 본다.
+
+## 10. 2026-11-02 데모 완성 작업
+
+목표: 데모 버전에서 KOSPI·KOSDAQ 어떤 종목을 검색해도 시세·뉴스·재무·공시·테마·분석 보고서가 나오게 한다.
+푸시 알림(Firebase)은 범위에서 뺐다. 코드는 그대로이고, 키가 없으면 발송을 건너뛴다.
+
+### 10-1. 외부 키
+
+- `DART_API_KEY`: 로컬 `.env` 에 넣었다. 키 출처는 개인 ThemeSense 작업 폴더의 `.env` 다.
+  ML 레포(PUBLIC) 히스토리의 노트북에 있던 다른 DART 키는 이미 만료됐다 (status 010).
+- 한국투자증권(KIS) 키: 없다. 없으면 네이버 시세로 대신 받으므로 데모에는 필요 없다.
+- Firebase: 없다. 범위 밖.
+
+### 10-2. 시장 구분
+
+DART `corpCode.xml` 에는 시장 정보가 없어서 `CorpCodeBootstrap` 이 모든 종목을 KOSPI 로 넣고 있었다.
+이제 네이버 시장별 목록(`NaverMarketListClient`, 약 44 회 호출)으로 KOSPI/KOSDAQ 을 정한다.
+
+- 두 목록 어디에도 없는 종목(코넥스, 상장폐지 등)은 새로 넣지 않는다.
+- 이미 있는 종목은 절대 지우지 않는다. 지우면 관심종목·보고서·테마가 FK CASCADE 로 같이 사라지고,
+  네이버 목록이 잠깐 덜 오는 것만으로도 그렇게 될 수 있기 때문이다 (리뷰 HIGH 지적 반영).
+  그래서 예전에 전부 KOSPI 로 들어간 DB 에는 코넥스 종목이 남는다. 데모 DB 는 새로 만드는 것을 권한다.
+- 목록을 못 받으면(빈 맵) 새 종목을 넣지 않고 다음 부팅에 다시 시도한다.
+- 적재가 예외로 끝나도 `StocksBootstrappedEvent` 는 `finally` 에서 나간다.
+- 결과: DART 상장 4,009 건 중 KOSPI 829, KOSDAQ 1,825 (합 2,654). DART `corp_cls` 와 정확히 일치했다.
+
+### 10-3. 데모 테마 데이터 (ThemeSense 대체)
+
+ThemeSense 모델 산출물이 없어서 규칙 기반 데모 산출물을 만들었다. **모델 출력이 아니다.**
+
+- 생성: `scripts/generate_demo_themesense.py`. DART 회사개황의 업종코드(KSIC)를 17 개 테마로 매핑하고,
+  대형주 10 개는 직접 보정한다 (예: 삼성전자 KSIC 264 = 통신장비 → AI/반도체). 테마별 β 는 손으로 정한 값이다.
+- 산출물: `demo/themesense/` 3 개 파일. 2,654 종목 전부, 종목당 상위 3 테마.
+- 적재: `.env` 에 `THEMESENSE_ARTIFACTS_DIR=demo/themesense` 를 두면, 종목 적재가 끝난 뒤
+  `ThemeSenseAutoIngest` 가 stock_themes 가 비어 있을 때 한 번 적재한다 (약 70 초).
+- 다시 만들려면: `DART_API_KEY=... python3 scripts/generate_demo_themesense.py --out demo/themesense --cache <캐시파일>`.
+  DART 를 약 4,000 회 부르고 10 분쯤 걸린다. 캐시가 있으면 이어서 진행한다.
+
+### 10-4. 분석 보고서 생성 방식
+
+- 공시 수집 직후 이벤트 경로는 그 종목의 재무 데이터가 없으면 보고서를 만들지 않는다.
+  첫 수집 때 공시 약 3,000 건마다 재무를 받으면 DART 일일 한도(약 2 만 회)를 넘기 때문이다.
+- 대신 `GET /analysis/{ticker}/reports` (1 쪽) 를 열 때 `ReportBackfillService` 가 최근 공시 5 건 중
+  보고서 없는 것을 만든다. 재무가 없으면 그때 DART 에서 받는다. 첫 조회는 1~2 초 걸린다.
+  파라미터 검증(목록 조회)을 먼저 하므로 잘못된 요청(400)은 DART 를 부르지 않는다.
+- 재무 변화량은 손익계산서 연간 대 연간(예: 2025 vs 2024)으로 계산한다. 연간이 둘 미만이면
+  시간 순 최신 분기를 전년 같은 분기와 비교한다 (2026H1 ↔ 2025H1). 누적치끼리 섞지 않는다.
+- 극단값(지주회사 영업이익률 600% 등)은 비율 ±20%p, 성장률 ±50% 로 자른다.
+- 한계: 기대 CAR 은 공시 내용이 아니라 종목 재무로 정해지므로, 같은 종목의 보고서는 값이 같다.
+
+### 10-5. 이번에 고친 버그
+
+| 증상 | 원인 | 수정 |
+|---|---|---|
+| 일별 시세·뉴스·PER 등이 빈 값 | 네이버가 PC 페이지를 내림 (410 "더 이상 제공되지 않습니다") | `m.stock.naver.com` JSON API 로 교체 |
+| 재무상태표·현금흐름표 탭이 비어 있음, 지배주주순이익에 자본총액이 들어감 | `DartFinanceClient` 가 행에 없는 `fs_div` 를 읽어 BS·CF·SCE 가 모두 CIS 한 행에 섞임 | `sj_div` 를 읽고, SCE 는 버리고, 지배/비지배 순이익은 "포괄" 이 없는 순이익 행에서 고른다 |
+| 위 수정 후 BS·CF 행 저장 실패 (unique 위반) | V8 이 옛 키를 지우려 했지만 이름이 틀려 V1 `uk_financial_ticker_period` 가 남음 | `V11__drop_legacy_financial_unique.sql` |
+| 부채총계 = 자산총계 | "부채총계" 가 앞선 "자본과부채총계" 행에 걸림 | 계정명 정확 일치를 먼저 찾는다 |
+| ROE·ROA 항상 빈 값 | 자본·자산이 손익 행에 없음 | 같은 기간의 BS 행에서 가져온다 |
+| 기말 현금 빈 값 | 계정명이 "기말의 현금…"/"기말현금…" 인데 키워드가 "기말의현금" | 키워드 "기말" |
+| 재무 탭 표가 화면 아래로 넘침, 분기 열 순서가 H1→Q1→Q3 | 세로 스크롤 없음, 문자열 정렬 | FE 세로 스크롤 + 시간 순 정렬 |
+| `.env` 에 DART 키를 넣으면 테스트가 실제 DART·네이버를 부름 | 테스트 프로파일도 `./.env` 를 import | 테스트 프로파일에서 `dart.api.key`, `themesense.artifacts-dir` 를 비움 |
+
+V11 은 `financial_statements` 를 비운다. 옛 파서가 섞어 저장한 CIS 행이 남아 있으면 다시 받지 않기 때문이다.
+재무는 화면을 열 때 DART 에서 다시 받는다. 이미 만들어진 분석 보고서는 지우지 않는다.
+
+### 10-6. 검증과 남은 일
+
+검증 (2026-11-02):
+
+- BE `./gradlew build` 통과, 테스트 233 개.
+- 별도 리뷰 에이전트 검토: HIGH 1 (부트스트랩의 종목 삭제), MEDIUM 3 (V11 데이터 정리, 요청 검증 순서,
+  분기 fallback) 을 모두 반영했다. LOW 중 이벤트 `finally` 발행도 반영했다.
+- 빈 DB 에서 기동 → 종목 2,654 적재 → 테마 자동 적재 (17 테마, 7,962 stock_themes) → 공시 2,763 건 수집.
+- iOS 시뮬레이터 Flutter integration test: 로그인 → 검색("제주반도체") → 정보·뉴스·재무(손익·재무상태)·공시·분석 탭.
+  모든 탭에 실제 데이터가 나왔고 렌더링 예외가 없었다. 테스트 파일은 임시로 만들고 지웠다.
+
+남은 일:
+
+1. 변경을 브랜치에 나눠 커밋하고 PR 을 연다.
+2. 실제 기기 확인.
+3. 데모 테마는 규칙 기반이다. ThemeSense 모델을 학습하면 `THEMESENSE_ARTIFACTS_DIR` 만 바꾸고
+   `--etl-themesense` 로 다시 적재한다.
+4. `signal` 한국어 표기, FE `widget_test.dart` 기존 실패는 그대로다.
+5. 네이버 API 는 비공식이다. 응답 형식이 바뀌면 시세·뉴스·지표·시장 구분이 같이 깨진다.

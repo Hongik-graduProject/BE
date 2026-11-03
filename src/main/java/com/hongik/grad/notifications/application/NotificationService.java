@@ -1,5 +1,6 @@
 package com.hongik.grad.notifications.application;
 
+import com.hongik.grad.analysis.domain.AnalysisReport;
 import com.hongik.grad.analysis.dto.PaginationMeta;
 import com.hongik.grad.common.api.ErrorCode;
 import com.hongik.grad.common.exception.DomainException;
@@ -161,8 +162,11 @@ public class NotificationService {
     List<Notification> content = result.getContent();
 
     Map<String, String> stockNames = resolveStockNames(content);
+    Map<Long, AnalysisReport> reports = resolveReports(content);
     List<NotificationItemResponse> items =
-        content.stream().map(n -> toItem(n, stockNames.get(n.getTicker()))).toList();
+        content.stream()
+            .map(n -> toItem(n, stockNames.get(n.getTicker()), reports.get(n.getReportId())))
+            .toList();
 
     long unreadCount = notificationRepository.countByUserIdAndIsReadFalse(userId);
     PaginationMeta pagination = PaginationMeta.of(page, size, result.getTotalElements());
@@ -230,7 +234,20 @@ public class NotificationService {
         .collect(Collectors.toMap(Stock::getTicker, Stock::getName));
   }
 
-  private NotificationItemResponse toItem(Notification n, String stockName) {
+  private Map<Long, AnalysisReport> resolveReports(List<Notification> notifications) {
+    Set<Long> reportIds =
+        notifications.stream()
+            .map(Notification::getReportId)
+            .filter(id -> id != null)
+            .collect(Collectors.toSet());
+    if (reportIds.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    return notificationRepository.findReportsWithThemeByIdIn(reportIds).stream()
+        .collect(Collectors.toMap(AnalysisReport::getId, r -> r));
+  }
+
+  private NotificationItemResponse toItem(Notification n, String stockName, AnalysisReport report) {
     return new NotificationItemResponse(
         n.getId(),
         n.getType().name().toLowerCase(Locale.ROOT),
@@ -241,6 +258,10 @@ public class NotificationService {
         n.getReportId(),
         n.getDisclosureId(),
         n.isRead(),
+        report == null || report.getExpectedCar() == null
+            ? null
+            : report.getExpectedCar().doubleValue(),
+        report == null ? null : report.getAppliedTheme().getName(),
         n.getCreatedAt());
   }
 }

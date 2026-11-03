@@ -1,5 +1,7 @@
 package com.hongik.grad.stocks.application;
 
+import com.hongik.grad.analysis.domain.AnalysisReport;
+import com.hongik.grad.analysis.domain.AnalysisReportRepository;
 import com.hongik.grad.analysis.dto.PaginationMeta;
 import com.hongik.grad.common.api.ErrorCode;
 import com.hongik.grad.common.exception.DomainException;
@@ -10,6 +12,8 @@ import com.hongik.grad.disclosures.domain.DisclosureRepository;
 import com.hongik.grad.folders.domain.FavoriteRepository;
 import com.hongik.grad.stocks.client.NaverDailyPriceClient;
 import com.hongik.grad.stocks.client.NaverDailyPriceClient.DailyPrice;
+import com.hongik.grad.stocks.client.NaverFinanceMetricsClient;
+import com.hongik.grad.stocks.client.NaverFinanceMetricsClient.Metrics;
 import com.hongik.grad.stocks.domain.FinancialStatement;
 import com.hongik.grad.stocks.domain.FinancialStatementRepository;
 import com.hongik.grad.stocks.domain.Stock;
@@ -39,6 +43,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Stocks 도메인 조회 서비스 — 검색 / 자동완성 / 인기 / 상세. */
@@ -48,6 +53,7 @@ public class StockQueryService {
 
   private static final int AUTOCOMPLETE_LIMIT = 10;
   private static final int RANKING_LIMIT = 20;
+  private static final int MAX_PRICE_DAYS = 250;
 
   private final StockRepository stockRepository;
   private final FavoriteRepository favoriteRepository;
@@ -59,6 +65,8 @@ public class StockQueryService {
   private final FinancialStatementFetchService financialStatementFetchService;
   private final NaverDailyPriceClient naverDailyPriceClient;
   private final DartCompanyClient dartCompanyClient;
+  private final NaverFinanceMetricsClient naverFinanceMetricsClient;
+  private final AnalysisReportRepository analysisReportRepository;
 
   @SuppressWarnings("checkstyle:ParameterNumber")
   public StockQueryService(
@@ -71,7 +79,9 @@ public class StockQueryService {
       StockNewsFetchService stockNewsFetchService,
       FinancialStatementFetchService financialStatementFetchService,
       NaverDailyPriceClient naverDailyPriceClient,
-      DartCompanyClient dartCompanyClient) {
+      DartCompanyClient dartCompanyClient,
+      NaverFinanceMetricsClient naverFinanceMetricsClient,
+      AnalysisReportRepository analysisReportRepository) {
     this.stockRepository = stockRepository;
     this.favoriteRepository = favoriteRepository;
     this.krxQuoteService = krxQuoteService;
@@ -82,18 +92,22 @@ public class StockQueryService {
     this.financialStatementFetchService = financialStatementFetchService;
     this.naverDailyPriceClient = naverDailyPriceClient;
     this.dartCompanyClient = dartCompanyClient;
+    this.naverFinanceMetricsClient = naverFinanceMetricsClient;
+    this.analysisReportRepository = analysisReportRepository;
   }
 
-  /** §4-11 GET /stocks/{ticker}/prices — 일별 시세. days≈10단위 페이지로 fetch. */
+  /** §4-11 GET /stocks/{ticker}/prices — 일별 시세. 최대 1년치(250거래일). */
+  // 네이버 일별 시세를 여러 쪽 받는 동안(최대 수십 초) DB 연결을 잡고 있지 않는다.
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public StockDailyPriceResponse prices(String ticker, int days) {
     if (!stockRepository.existsById(ticker)) {
       throw new DomainException(ErrorCode.NOT_FOUND, "종목을 찾을 수 없습니다");
     }
-    int pages = Math.max(1, (int) Math.ceil(days / 10.0));
-    List<DailyPrice> rows = naverDailyPriceClient.fetch(ticker, pages);
+    int limit = Math.clamp(days, 1, MAX_PRICE_DAYS);
+    List<DailyPrice> rows = naverDailyPriceClient.fetch(ticker, limit);
     List<StockDailyPriceItem> items =
         rows.stream()
-            .limit(days)
+            .limit(limit)
             .map(
                 r ->
                     new StockDailyPriceItem(
@@ -192,6 +206,14 @@ public class StockQueryService {
     PageRequest pageable = PageRequest.of(Math.max(0, page - 1), Math.max(1, size));
     org.springframework.data.domain.Page<Disclosure> result =
         disclosureRepository.findByStockTickerOrderByFiledAtDesc(ticker, pageable);
+    // 공시 목록에서 바로 보고서로 갈 수 있게, 이 쪽의 공시에 연결된 보고서를 한 번에 조회한다.
+    Map<Long, AnalysisReport> reports =
+        result.isEmpty()
+            ? Map.of()
+            : analysisReportRepository
+                .findByDisclosureIdIn(result.stream().map(Disclosure::getId).toList())
+                .stream()
+                .collect(Collectors.toMap(r -> r.getDisclosure().getId(), r -> r, (a, b) -> a));
     List<StockDisclosureItem> items =
         result.stream()
             .map(
@@ -203,8 +225,11 @@ public class StockQueryService {
                         d.getFiledAt(),
                         d.getDartUrl() != null && !d.getDartUrl().isBlank()
                             ? d.getDartUrl()
-                            : "https://dart.fss.or.kr/dsaf001/main.do?rcpNo="
-                                + d.getDartFilingId()))
+                            : "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + d.getDartFilingId(),
+                        reports.containsKey(d.getId()) ? reports.get(d.getId()).getId() : null,
+                        reports.containsKey(d.getId())
+                            ? reports.get(d.getId()).getExpectedCar()
+                            : null))
             .toList();
     return new StockDisclosuresResponse(
         items, PaginationMeta.of(page, size, result.getTotalElements()));
@@ -244,6 +269,8 @@ public class StockQueryService {
         rows.stream().map(s -> toBrief(s, quotes.get(s.getTicker()))).toList());
   }
 
+  // 시세·네이버 지표 호출(각 최대 5초) 동안 DB 연결을 잡고 있지 않도록 클래스의 readOnly 트랜잭션을 쓰지 않는다.
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public StockDetailResponse detail(UUID userId, String ticker) {
     Stock stock =
         stockRepository
@@ -257,7 +284,9 @@ public class StockQueryService {
         CompanyInfo info = dartCompanyClient.fetch(stock.getCorpCode());
         if (!info.isEmpty()) {
           String desc = buildDescription(stock, info);
-          stockRepository.findById(ticker).ifPresent(s -> s.assignDescription(desc));
+          // 트랜잭션 밖이라 변경 감지가 없으니 직접 저장한다. 저장해야 다음 조회 때 DART 를 다시 부르지 않는다.
+          stock.assignDescription(desc);
+          stockRepository.save(stock);
         }
       } catch (Exception ignored) {
       }
@@ -265,6 +294,7 @@ public class StockQueryService {
     KrxQuote quote = krxQuoteService.getQuote(ticker);
     boolean isFavorite =
         userId != null && favoriteRepository.existsByUserIdAndTicker(userId, ticker);
+    Metrics m = naverFinanceMetricsClient.fetch(ticker);
     return new StockDetailResponse(
         stock.getTicker(),
         stock.getName(),
@@ -275,7 +305,13 @@ public class StockQueryService {
         quote == null ? null : quote.currentPrice(),
         quote == null ? null : quote.changeRate(),
         quote == null ? null : quote.changeAmount(),
-        isFavorite);
+        isFavorite,
+        m.marketCap(),
+        m.per(),
+        m.pbr(),
+        m.dividendYield(),
+        m.high52w(),
+        m.low52w());
   }
 
   /** "코스피 상장 · CEO 곽노정 · 설립 1983.02" 같은 한 줄. */

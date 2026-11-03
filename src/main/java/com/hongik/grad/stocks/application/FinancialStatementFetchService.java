@@ -89,8 +89,8 @@ public class FinancialStatementFetchService {
         BigDecimal roa = ratio(financialStatementRepository, ticker, true);
         FinancialStatement latest =
             financialStatementRepository
-                .findByStockTickerAndPeriodTypeAndPeriod(
-                    ticker, PeriodType.ANNUAL, String.valueOf(currentYear - 1))
+                .findByStockTickerAndPeriodTypeAndPeriodAndSjDiv(
+                    ticker, PeriodType.ANNUAL, String.valueOf(currentYear - 1), "CIS")
                 .orElse(null);
         if (latest != null) {
           latest.applyRatios(m.per(), m.pbr(), m.eps(), m.dividendYield(), roe, roa);
@@ -112,7 +112,9 @@ public class FinancialStatementFetchService {
     if (rows.isEmpty()) return;
 
     Map<String, List<FinanceRow>> byDiv =
-        rows.stream().collect(Collectors.groupingBy(r -> normalizeDiv(r.fsDiv())));
+        rows.stream()
+            .filter(r -> normalizeDiv(r.sjDiv()) != null)
+            .collect(Collectors.groupingBy(r -> normalizeDiv(r.sjDiv())));
 
     for (Map.Entry<String, List<FinanceRow>> entry : byDiv.entrySet()) {
       String sjDiv = entry.getKey();
@@ -137,8 +139,9 @@ public class FinancialStatementFetchService {
             pick(lines, "이익잉여금"),
             pick(lines, "자본총계"));
       } else if ("CF".equals(sjDiv)) {
+        // 기말 현금 계정명은 회사마다 "기말의 현금…" / "기말현금…" 으로 갈린다.
         fs.applyCashFlow(
-            pick(lines, "영업활동"), pick(lines, "투자활동"), pick(lines, "재무활동"), pick(lines, "기말의현금"));
+            pick(lines, "영업활동"), pick(lines, "투자활동"), pick(lines, "재무활동"), pick(lines, "기말"));
       } else {
         // CIS / IS — 손익계산서
         fs.applyIncomeStatement(
@@ -152,8 +155,8 @@ public class FinancialStatementFetchService {
             pick(lines, "법인세비용차감전"),
             pick(lines, "법인세비용"),
             pick(lines, "당기순이익"),
-            pick(lines, "지배기업"),
-            pick(lines, "비지배지분"));
+            pickNetIncomeShare(lines, "지배기업"),
+            pickNetIncomeShare(lines, "비지배"));
       }
       financialStatementRepository.save(fs);
     }
@@ -165,18 +168,35 @@ public class FinancialStatementFetchService {
         byDiv.keySet());
   }
 
-  private static String normalizeDiv(String div) {
+  /** 자본변동표(SCE) 등은 버린다. 손익계산서로 합치면 "지배기업…자본" 행이 순이익 자리에 들어간다. */
+  static String normalizeDiv(String div) {
     if (div == null) return "CIS";
     String d = div.trim().toUpperCase();
     return switch (d) {
       case "BS" -> "BS";
       case "CF" -> "CF";
       case "IS", "CIS" -> "CIS";
-      default -> "CIS";
+      default -> null;
     };
   }
 
-  private static Long pick(List<FinanceRow> rows, String keyword) {
+  /** 지배/비지배 귀속 순이익. 같은 키워드의 "포괄손익, 지배기업…" 행이 먼저 나오므로 순이익 행만 고른다. */
+  static Long pickNetIncomeShare(List<FinanceRow> rows, String keyword) {
+    for (FinanceRow r : rows) {
+      String name = r.accountNm() == null ? "" : r.accountNm().trim();
+      if (name.contains(keyword) && name.contains("순이익") && !name.contains("포괄")) {
+        return parseLong(r.amount());
+      }
+    }
+    return null;
+  }
+
+  /** 계정명이 정확히 같은 행을 먼저 찾는다. "부채총계" 가 앞선 "자본과부채총계" 행에 걸리지 않게. */
+  static Long pick(List<FinanceRow> rows, String keyword) {
+    for (FinanceRow r : rows) {
+      String name = r.accountNm() == null ? "" : r.accountNm().replace(" ", "");
+      if (name.equals(keyword)) return parseLong(r.amount());
+    }
     for (FinanceRow r : rows) {
       String name = r.accountNm() == null ? "" : r.accountNm().trim();
       if (name.contains(keyword)) return parseLong(r.amount());
@@ -202,7 +222,13 @@ public class FinancialStatementFetchService {
         .map(
             f -> {
               Long ni = f.getNetIncome();
-              Long denom = asRoa ? f.getTotalAssets() : f.getTotalEquity();
+              // 자산·자본은 같은 기간의 재무상태표(BS) 행에 있다.
+              FinancialStatement bs =
+                  repo.findByStockTickerAndPeriodTypeAndPeriodAndSjDiv(
+                          ticker, PeriodType.ANNUAL, f.getPeriod(), "BS")
+                      .orElse(null);
+              if (bs == null) return null;
+              Long denom = asRoa ? bs.getTotalAssets() : bs.getTotalEquity();
               if (ni == null || denom == null || denom == 0) return null;
               return new BigDecimal(ni)
                   .divide(new BigDecimal(denom), 6, RoundingMode.HALF_UP)

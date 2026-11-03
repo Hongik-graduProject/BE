@@ -6,6 +6,9 @@ import com.hongik.grad.folders.domain.Favorite;
 import com.hongik.grad.folders.domain.FavoriteRepository;
 import com.hongik.grad.folders.domain.Folder;
 import com.hongik.grad.folders.domain.FolderRepository;
+import com.hongik.grad.stocks.domain.Market;
+import com.hongik.grad.stocks.domain.Stock;
+import com.hongik.grad.stocks.domain.StockRepository;
 import com.hongik.grad.support.TestcontainersConfig;
 import com.hongik.grad.users.domain.Profile;
 import com.hongik.grad.users.domain.ProfileRepository;
@@ -30,12 +33,16 @@ class FavoriteRepositoryTest {
   @Autowired private FavoriteRepository favoriteRepository;
   @Autowired private FolderRepository folderRepository;
   @Autowired private ProfileRepository profileRepository;
+  @Autowired private StockRepository stockRepository;
   @Autowired private TestEntityManager em;
 
   private Folder folder;
 
   @BeforeEach
   void setUp() {
+    // V7 deletes the K* seed placeholders, so the favorites FK targets are created here.
+    stockRepository.save(new Stock("K00001", "테스트종목1", Market.KOSPI));
+    stockRepository.save(new Stock("K00002", "테스트종목2", Market.KOSPI));
     UUID userId = UUID.randomUUID();
     profileRepository.save(new Profile(userId, "테스트유저"));
     folder = folderRepository.save(Folder.defaultFor(userId));

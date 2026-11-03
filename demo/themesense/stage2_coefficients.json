@@ -1,0 +1,869 @@
+[
+ {
+  "theme_name": "AI/반도체",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.35,
+    "abs_beta": 0.35,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 74
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.15,
+    "abs_beta": 0.15,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 74
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.08,
+    "abs_beta": 0.08,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 74
+   },
+   {
+    "metric_code": "per",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 74
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.01,
+    "abs_beta": 0.01,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 74
+   }
+  ]
+ },
+ {
+  "theme_name": "IT하드웨어/전자부품",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.3,
+    "abs_beta": 0.3,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 264
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.12,
+    "abs_beta": 0.12,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 264
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.06,
+    "abs_beta": 0.06,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 264
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 264
+   },
+   {
+    "metric_code": "per",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 264
+   }
+  ]
+ },
+ {
+  "theme_name": "2차전지/EV",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.25,
+    "abs_beta": 0.25,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 20
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.1,
+    "abs_beta": 0.1,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 20
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.1,
+    "abs_beta": 0.1,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 20
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.03,
+    "abs_beta": 0.03,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 20
+   },
+   {
+    "metric_code": "per",
+    "beta": -0.01,
+    "abs_beta": 0.01,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 20
+   }
+  ]
+ },
+ {
+  "theme_name": "바이오/헬스케어",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.12,
+    "abs_beta": 0.12,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 316
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.1,
+    "abs_beta": 0.1,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 316
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.07,
+    "abs_beta": 0.07,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 316
+   },
+   {
+    "metric_code": "pbr",
+    "beta": -0.05,
+    "abs_beta": 0.05,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 316
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 316
+   }
+  ]
+ },
+ {
+  "theme_name": "자동차/모빌리티",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.32,
+    "abs_beta": 0.32,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 112
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.15,
+    "abs_beta": 0.15,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 112
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.05,
+    "abs_beta": 0.05,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 112
+   },
+   {
+    "metric_code": "per",
+    "beta": -0.03,
+    "abs_beta": 0.03,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 112
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 112
+   }
+  ]
+ },
+ {
+  "theme_name": "조선/방산/우주",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.28,
+    "abs_beta": 0.28,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 28
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.1,
+    "abs_beta": 0.1,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 28
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.09,
+    "abs_beta": 0.09,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 28
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.03,
+    "abs_beta": 0.03,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 28
+   },
+   {
+    "metric_code": "per",
+    "beta": -0.01,
+    "abs_beta": 0.01,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 28
+   }
+  ]
+ },
+ {
+  "theme_name": "화학/소재",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.3,
+    "abs_beta": 0.3,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 258
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.12,
+    "abs_beta": 0.12,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 258
+   },
+   {
+    "metric_code": "pbr",
+    "beta": -0.08,
+    "abs_beta": 0.08,
+    "rank": 3,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 258
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.05,
+    "abs_beta": 0.05,
+    "rank": 4,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 258
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.03,
+    "abs_beta": 0.03,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 258
+   }
+  ]
+ },
+ {
+  "theme_name": "철강/금속",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.28,
+    "abs_beta": 0.28,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 132
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.12,
+    "abs_beta": 0.12,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 132
+   },
+   {
+    "metric_code": "pbr",
+    "beta": -0.1,
+    "abs_beta": 0.1,
+    "rank": 3,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 132
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.04,
+    "abs_beta": 0.04,
+    "rank": 4,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 132
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.03,
+    "abs_beta": 0.03,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 132
+   }
+  ]
+ },
+ {
+  "theme_name": "기계/산업재",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.26,
+    "abs_beta": 0.26,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 288
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.12,
+    "abs_beta": 0.12,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 288
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.06,
+    "abs_beta": 0.06,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 288
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 288
+   },
+   {
+    "metric_code": "per",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 288
+   }
+  ]
+ },
+ {
+  "theme_name": "소프트웨어/인터넷",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.22,
+    "abs_beta": 0.22,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 255
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.12,
+    "abs_beta": 0.12,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 255
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.09,
+    "abs_beta": 0.09,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 255
+   },
+   {
+    "metric_code": "per",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 255
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.01,
+    "abs_beta": 0.01,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 255
+   }
+  ]
+ },
+ {
+  "theme_name": "미디어/엔터/게임",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.24,
+    "abs_beta": 0.24,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 84
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.1,
+    "abs_beta": 0.1,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 84
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.08,
+    "abs_beta": 0.08,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 84
+   },
+   {
+    "metric_code": "per",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 84
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.01,
+    "abs_beta": 0.01,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 84
+   }
+  ]
+ },
+ {
+  "theme_name": "금융/지주",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "net_margin",
+    "beta": 0.2,
+    "abs_beta": 0.2,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 226
+   },
+   {
+    "metric_code": "op_margin",
+    "beta": 0.15,
+    "abs_beta": 0.15,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 226
+   },
+   {
+    "metric_code": "pbr",
+    "beta": -0.15,
+    "abs_beta": 0.15,
+    "rank": 3,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 226
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.03,
+    "abs_beta": 0.03,
+    "rank": 4,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 226
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.01,
+    "abs_beta": 0.01,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 226
+   }
+  ]
+ },
+ {
+  "theme_name": "건설/부동산",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.25,
+    "abs_beta": 0.25,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 83
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.12,
+    "abs_beta": 0.12,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 83
+   },
+   {
+    "metric_code": "pbr",
+    "beta": -0.1,
+    "abs_beta": 0.1,
+    "rank": 3,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 83
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.04,
+    "abs_beta": 0.04,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 83
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.04,
+    "abs_beta": 0.04,
+    "rank": 5,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 83
+   }
+  ]
+ },
+ {
+  "theme_name": "소비재/유통",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.27,
+    "abs_beta": 0.27,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 357
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.14,
+    "abs_beta": 0.14,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 357
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.05,
+    "abs_beta": 0.05,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 357
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 357
+   },
+   {
+    "metric_code": "per",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 357
+   }
+  ]
+ },
+ {
+  "theme_name": "에너지/유틸리티",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.24,
+    "abs_beta": 0.24,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 21
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.12,
+    "abs_beta": 0.12,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 21
+   },
+   {
+    "metric_code": "pbr",
+    "beta": -0.08,
+    "abs_beta": 0.08,
+    "rank": 3,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 21
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.04,
+    "abs_beta": 0.04,
+    "rank": 4,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 21
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.03,
+    "abs_beta": 0.03,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 21
+   }
+  ]
+ },
+ {
+  "theme_name": "운송/물류",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.26,
+    "abs_beta": 0.26,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 28
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.12,
+    "abs_beta": 0.12,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 28
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.05,
+    "abs_beta": 0.05,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 28
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.03,
+    "abs_beta": 0.03,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 28
+   },
+   {
+    "metric_code": "per",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 28
+   }
+  ]
+ },
+ {
+  "theme_name": "기타 서비스",
+  "model_version": "demo",
+  "coefficients": [
+   {
+    "metric_code": "op_margin",
+    "beta": 0.22,
+    "abs_beta": 0.22,
+    "rank": 1,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 108
+   },
+   {
+    "metric_code": "net_margin",
+    "beta": 0.12,
+    "abs_beta": 0.12,
+    "rank": 2,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 108
+   },
+   {
+    "metric_code": "rev_gr",
+    "beta": 0.05,
+    "abs_beta": 0.05,
+    "rank": 3,
+    "direction": "positive",
+    "r_squared": null,
+    "sample_size": 108
+   },
+   {
+    "metric_code": "debt_ratio",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 4,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 108
+   },
+   {
+    "metric_code": "per",
+    "beta": -0.02,
+    "abs_beta": 0.02,
+    "rank": 5,
+    "direction": "negative",
+    "r_squared": null,
+    "sample_size": 108
+   }
+  ]
+ }
+]

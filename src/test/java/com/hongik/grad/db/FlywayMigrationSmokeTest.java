@@ -16,8 +16,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * Verifies V1/V2/V3 Flyway migrations apply cleanly against a real Postgres container and produce
- * the expected schema + seed counts described in PR-02.
+ * Verifies every Flyway migration applies cleanly against a real Postgres container and leaves the
+ * expected schema: no placeholder stocks (V7 + V10) and local credential columns on profiles (V9).
  */
 @SpringBootTest
 @ActiveProfiles("test-db")
@@ -27,7 +27,8 @@ class FlywayMigrationSmokeTest {
   @Autowired private DataSource dataSource;
 
   @Test
-  @DisplayName("V1+V2+V3 적용 후 17 테이블 / 8 ENUM / 15 metric / 350 stock 이 생성된다")
+  @DisplayName(
+      "전체 마이그레이션(V12까지) 적용 후 17 테이블 / 8 ENUM / 15 metric / placeholder stock 0 / profiles 자격증명 컬럼")
   void flywayMigratesCleanly() {
     JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
@@ -70,15 +71,42 @@ class FlywayMigrationSmokeTest {
     Set<String> expected = new HashSet<>(List.of("per", "pbr", "roe", "debt_ratio", "market_cap"));
     assertThat(new HashSet<>(sampleCodes)).as("핵심 metric_code 5개 모두 존재").isEqualTo(expected);
 
-    Integer stockCount = jdbc.queryForObject("SELECT COUNT(*) FROM stocks", Integer.class);
-    assertThat(stockCount).as("V3 seed 의 stock 총 행 수").isEqualTo(350);
+    String latestVersion =
+        jdbc.queryForObject(
+            "SELECT version FROM flyway_schema_history WHERE success "
+                + "ORDER BY installed_rank DESC LIMIT 1",
+            String.class);
+    assertThat(latestVersion).as("최신 Flyway 버전").isEqualTo("12");
 
-    Integer kospiCount =
-        jdbc.queryForObject("SELECT COUNT(*) FROM stocks WHERE market = 'KOSPI'", Integer.class);
-    Integer kosdaqCount =
-        jdbc.queryForObject("SELECT COUNT(*) FROM stocks WHERE market = 'KOSDAQ'", Integer.class);
-    assertThat(kospiCount).as("KOSPI 행 수").isEqualTo(200);
-    assertThat(kosdaqCount).as("KOSDAQ 행 수").isEqualTo(150);
-    assertThat(kospiCount + kosdaqCount).as("KOSPI + KOSDAQ 합계").isEqualTo(350);
+    Integer placeholderCount =
+        jdbc.queryForObject(
+            "SELECT COUNT(*) FROM stocks WHERE ticker LIKE 'K%' OR ticker LIKE 'Q%'",
+            Integer.class);
+    assertThat(placeholderCount).as("V3 placeholder stock 은 V7 + V10 에서 모두 삭제").isZero();
+
+    List<String> profileColumns =
+        jdbc.queryForList(
+            "SELECT column_name FROM information_schema.columns "
+                + "WHERE table_schema = 'public' AND table_name = 'profiles'",
+            String.class);
+    assertThat(profileColumns).as("V9 profiles 자격증명 컬럼").contains("email", "password_hash");
+
+    Integer emailIndexCount =
+        jdbc.queryForObject(
+            "SELECT COUNT(*) FROM pg_indexes "
+                + "WHERE schemaname = 'public' AND tablename = 'profiles' "
+                + "AND indexname = 'uk_profiles_email'",
+            Integer.class);
+    assertThat(emailIndexCount).as("V9 uk_profiles_email 인덱스").isEqualTo(1);
+
+    List<String> financialUniqueKeys =
+        jdbc.queryForList(
+            "SELECT indexname FROM pg_indexes "
+                + "WHERE schemaname = 'public' AND tablename = 'financial_statements' "
+                + "AND indexdef LIKE 'CREATE UNIQUE INDEX%' AND indexname <> 'pk_financial_statements'",
+            String.class);
+    assertThat(financialUniqueKeys)
+        .as("V11: 재무제표 고유 키는 sj_div 포함 키 하나뿐")
+        .containsExactly("uq_financial_statements_ticker_period_type_period_sj");
   }
 }

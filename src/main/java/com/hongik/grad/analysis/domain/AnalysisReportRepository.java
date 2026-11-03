@@ -14,6 +14,8 @@ public interface AnalysisReportRepository extends JpaRepository<AnalysisReport, 
 
   Optional<AnalysisReport> findByStockTickerAndDisclosureId(String ticker, Long disclosureId);
 
+  List<AnalysisReport> findByDisclosureIdIn(Collection<Long> disclosureIds);
+
   /**
    * Batch fetch for §3-6 enrichment; latest-per-ticker and unread counts derived in memory. {@code
    * appliedTheme} is fetched eagerly to avoid per-report Theme lookups in buildSummary.

@@ -66,15 +66,10 @@ public class KrxClient {
           webClient
               .get()
               .uri(
-                  uriBuilder ->
-                      uriBuilder
-                          .scheme("https")
-                          .host(host(baseUrl))
-                          .port(port(baseUrl))
-                          .path("/uapi/domestic-stock/v1/quotations/inquire-price")
-                          .queryParam("FID_COND_MRKT_DIV_CODE", "J")
-                          .queryParam("FID_INPUT_ISCD", ticker)
-                          .build())
+                  baseUrl
+                      + "/uapi/domestic-stock/v1/quotations/inquire-price"
+                      + "?FID_COND_MRKT_DIV_CODE=J&FID_INPUT_ISCD={ticker}",
+                  ticker)
               .header("Authorization", "Bearer " + accessToken)
               .header("appkey", apiKey)
               .header("appsecret", apiSecret)
@@ -143,29 +138,6 @@ public class KrxClient {
           || responseException.getStatusCode().is5xxServerError();
     }
     return false;
-  }
-
-  private static String host(String url) {
-    String stripped = url.replaceFirst("^https?://", "");
-    int colon = stripped.indexOf(':');
-    int slash = stripped.indexOf('/');
-    int end = stripped.length();
-    if (colon >= 0) end = Math.min(end, colon);
-    if (slash >= 0) end = Math.min(end, slash);
-    return stripped.substring(0, end);
-  }
-
-  private static int port(String url) {
-    String stripped = url.replaceFirst("^https?://", "");
-    int colon = stripped.indexOf(':');
-    if (colon < 0) return -1;
-    int slash = stripped.indexOf('/', colon);
-    String portStr = stripped.substring(colon + 1, slash < 0 ? stripped.length() : slash);
-    try {
-      return Integer.parseInt(portStr);
-    } catch (NumberFormatException e) {
-      return -1;
-    }
   }
 
   private record CachedToken(String accessToken, Instant expiresAt) {}

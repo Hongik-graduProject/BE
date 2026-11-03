@@ -1,74 +1,77 @@
 package com.hongik.grad.stocks.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/** 네이버 금융 일별 시세 페이지 크롤링. 한 페이지당 10개, 최신순. */
+/**
+ * 네이버 모바일 증권 일별 시세 API 비공식 호출. 최신순. 기존 PC 페이지(sise_day.naver)는 2026-10 에 410 으로 종료됐다.
+ *
+ * <p>응답 예시: {@code [{"localTradedAt":"2026-11-02","closePrice":"230,000",
+ * "compareToPreviousClosePrice":"5,000","openPrice":"220,500","highPrice":"232,000",
+ * "lowPrice":"214,000","accumulatedTradingVolume":24083880}]} — 전일비는 부호가 붙어 온다.
+ */
 @Component
 public class NaverDailyPriceClient {
 
   private static final Logger log = LoggerFactory.getLogger(NaverDailyPriceClient.class);
   private static final String URL_FMT =
-      "https://finance.naver.com/item/sise_day.naver?code=%s&page=%d";
-  private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+      "https://m.stock.naver.com/api/stock/%s/price?pageSize=%d&page=%d";
+  // pageSize 61 이상은 400 을 돌려준다 (2026-11 확인).
+  private static final int MAX_PAGE_SIZE = 60;
 
-  /** 최근 {@code pages * 10} 거래일의 일봉을 최신→과거 순으로 반환. */
-  public List<DailyPrice> fetch(String ticker, int pages) {
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
+  /** 최근 {@code days} 거래일의 일봉을 최신→과거 순으로 반환. 60개씩 페이지를 넘겨 모은다. */
+  public List<DailyPrice> fetch(String ticker, int days) {
     List<DailyPrice> all = new ArrayList<>();
+    int pageSize = Math.min(days, MAX_PAGE_SIZE);
+    for (int page = 1; all.size() < days; page++) {
+      int before = all.size();
+      fetchPage(ticker, pageSize, page, all);
+      if (all.size() - before < pageSize) break; // 마지막 페이지 또는 실패
+    }
+    return all.size() > days ? all.subList(0, days) : all;
+  }
+
+  private void fetchPage(String ticker, int pageSize, int page, List<DailyPrice> all) {
     try {
-      for (int p = 1; p <= pages; p++) {
-        Document doc =
-            Jsoup.connect(String.format(URL_FMT, ticker, p))
-                .userAgent(
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/537.36"
-                        + " Chrome/120.0.0.0 Safari/537.36")
-                .referrer("https://finance.naver.com/item/main.naver?code=" + ticker)
-                .timeout(5000)
-                .get();
-        for (Element row : doc.select("table.type2 tr")) {
-          Elements cells = row.select("td");
-          if (cells.size() < 7) continue;
-          String dateText = textOrNull(cells.get(0));
-          if (dateText == null) continue;
-          LocalDate date;
-          try {
-            date = LocalDate.parse(dateText, DATE_FMT);
-          } catch (Exception e) {
-            continue;
-          }
-          long close = parseLong(textOrNull(cells.get(1)));
-          long change = parseLong(textOrNull(cells.get(2)));
-          if (isFallingRow(cells.get(2))) change = -Math.abs(change);
-          long open = parseLong(textOrNull(cells.get(3)));
-          long high = parseLong(textOrNull(cells.get(4)));
-          long low = parseLong(textOrNull(cells.get(5)));
-          long volume = parseLong(textOrNull(cells.get(6)));
-          all.add(new DailyPrice(date, close, change, open, high, low, volume));
+      String body =
+          Jsoup.connect(String.format(URL_FMT, ticker, pageSize, page))
+              .userAgent(
+                  "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/537.36"
+                      + " Chrome/120.0.0.0 Safari/537.36")
+              .referrer("https://m.stock.naver.com/")
+              .ignoreContentType(true)
+              .timeout(5000)
+              .execute()
+              .body();
+      for (JsonNode row : objectMapper.readTree(body)) {
+        LocalDate date;
+        try {
+          date = LocalDate.parse(row.path("localTradedAt").asText(""));
+        } catch (Exception e) {
+          continue;
         }
+        all.add(
+            new DailyPrice(
+                date,
+                parseLong(row.path("closePrice").asText("")),
+                parseLong(row.path("compareToPreviousClosePrice").asText("")),
+                parseLong(row.path("openPrice").asText("")),
+                parseLong(row.path("highPrice").asText("")),
+                parseLong(row.path("lowPrice").asText("")),
+                row.path("accumulatedTradingVolume").asLong(0)));
       }
     } catch (Exception ex) {
       log.warn("Naver daily price fetch failed for {}: {}", ticker, ex.getMessage());
     }
-    return all;
-  }
-
-  private static String textOrNull(Element cell) {
-    String s = cell.text().trim();
-    return s.isEmpty() ? null : s;
-  }
-
-  /** 전일비 셀에 "하락" 표시가 있으면 음수. */
-  private static boolean isFallingRow(Element changeCell) {
-    return changeCell.select("em.bu_pdn, em.bu_pdnn").size() > 0;
   }
 
   private static long parseLong(String v) {

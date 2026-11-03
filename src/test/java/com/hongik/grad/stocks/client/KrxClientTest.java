@@ -51,9 +51,19 @@ class KrxClientTest {
     mockWebServer.shutdown();
   }
 
+  /** getQuote first calls /oauth2/tokenP; the token is cached per KrxClient instance. */
+  private void enqueueToken() {
+    mockWebServer.enqueue(
+        new MockResponse()
+            .setResponseCode(200)
+            .setBody("{\"access_token\":\"t\",\"expires_in\":86400,\"token_type\":\"Bearer\"}")
+            .addHeader("Content-Type", "application/json"));
+  }
+
   @Test
   @DisplayName("정상 응답 시 KrxQuote를 올바르게 파싱한다")
-  void successResponse_returnsQuote() {
+  void successResponse_returnsQuote() throws InterruptedException {
+    enqueueToken();
     String responseBody =
         """
         {
@@ -77,11 +87,17 @@ class KrxClientTest {
     assertThat(quote.currentPrice()).isEqualTo(72000L);
     assertThat(quote.changeRate()).isEqualTo(1.50);
     assertThat(quote.changeAmount()).isEqualTo(1000L);
+    assertThat(mockWebServer.takeRequest().getPath()).isEqualTo("/oauth2/tokenP");
+    assertThat(mockWebServer.takeRequest().getPath())
+        .isEqualTo(
+            "/uapi/domestic-stock/v1/quotations/inquire-price"
+                + "?FID_COND_MRKT_DIV_CODE=J&FID_INPUT_ISCD=005930");
   }
 
   @Test
   @DisplayName("429 응답 후 재시도하여 성공하면 올바른 결과를 반환한다")
   void rateLimited_retryThenSuccess() {
+    enqueueToken();
     mockWebServer.enqueue(new MockResponse().setResponseCode(429));
 
     String responseBody =
@@ -110,6 +126,7 @@ class KrxClientTest {
   @Test
   @DisplayName("500 서버 에러 시 빈 KrxQuote를 반환한다")
   void serverError_returnsEmpty() {
+    enqueueToken();
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
     mockWebServer.enqueue(new MockResponse().setResponseCode(500));
 
@@ -124,6 +141,7 @@ class KrxClientTest {
   @Test
   @DisplayName("타임아웃 시 빈 KrxQuote를 반환한다")
   void timeout_returnsEmpty() {
+    enqueueToken();
     mockWebServer.enqueue(
         new MockResponse()
             .setResponseCode(200)

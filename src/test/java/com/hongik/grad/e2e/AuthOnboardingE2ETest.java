@@ -33,6 +33,21 @@ class AuthOnboardingE2ETest {
   @Autowired private FolderRepository folderRepository;
 
   @Test
+  @DisplayName("POST /auth/signup → 200 + created_at 이 채워진 응답")
+  void signupReturnsCreatedAt() throws Exception {
+    mockMvc
+        .perform(
+            post("/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"email\":\"signup-%s@example.com\",\"password\":\"secret1\"}"
+                        .formatted(UUID.randomUUID())))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.user_id").isNotEmpty())
+        .andExpect(jsonPath("$.data.created_at").isNotEmpty());
+  }
+
+  @Test
   @DisplayName("유효 토큰 POST /users → 200 + Profile 1 + 기본 폴더 1")
   void validTokenCreatesProfileAndFolder() throws Exception {
     UUID userId = UUID.randomUUID();

@@ -1,5 +1,8 @@
 package com.hongik.grad.notifications.domain;
 
+import com.hongik.grad.analysis.domain.AnalysisReport;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -35,4 +38,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
       "UPDATE Notification n SET n.isRead = true "
           + "WHERE n.userId = :userId AND n.ticker = :ticker AND n.isRead = false")
   int markAllReadByUserIdAndTicker(@Param("userId") UUID userId, @Param("ticker") String ticker);
+
+  /** §6-1 enrichment: linked reports with their theme in one query (no N+1). */
+  @Query("SELECT r FROM AnalysisReport r JOIN FETCH r.appliedTheme WHERE r.id IN :ids")
+  List<AnalysisReport> findReportsWithThemeByIdIn(@Param("ids") Collection<Long> ids);
 }

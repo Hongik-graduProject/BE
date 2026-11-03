@@ -154,6 +154,11 @@ public class AnalysisReportGenerator {
     }
 
     MetricDeltaCalculator.DeltaSnapshot snapshot = metricDeltaCalculator.computeForTicker(ticker);
+    if (snapshot.latest() == null) {
+      // 재무 데이터 없이 만들면 기여도가 전부 0 인 보고서가 남는다. ReportBackfillService 가 재무를 받은 뒤 다시 만든다.
+      log.info("Skip report — no financial statements yet for ticker={}", ticker);
+      return Optional.empty();
+    }
 
     List<MetricContribution> contributions = new ArrayList<>();
     BigDecimal expectedCar = BigDecimal.ZERO;

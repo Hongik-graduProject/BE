@@ -36,6 +36,10 @@ public class Stock extends BaseTimeEntity {
   @Column(name = "corp_code", length = 8)
   private String corpCode;
 
+  /** 원 단위 시가총액. 부팅 때 네이버 시장별 목록으로 갱신한다 (테마 종목 정렬용). */
+  @Column(name = "market_cap")
+  private Long marketCap;
+
   protected Stock() {}
 
   public Stock(String ticker, String name, Market market) {
@@ -72,11 +76,27 @@ public class Stock extends BaseTimeEntity {
     return corpCode;
   }
 
+  public Long getMarketCap() {
+    return marketCap;
+  }
+
+  public void assignMarketCap(Long marketCap) {
+    this.marketCap = marketCap;
+  }
+
   public void assignCorpCode(String corpCode) {
     this.corpCode = corpCode;
   }
 
   public void assignDescription(String description) {
     this.description = description;
+  }
+
+  /** 시장이 바뀌면 "KOSPI 상장 · …" 설명도 틀려지므로 비워서 다시 만들게 한다. */
+  public void assignMarket(Market market) {
+    if (this.market != market) {
+      this.market = market;
+      this.description = null;
+    }
   }
 }

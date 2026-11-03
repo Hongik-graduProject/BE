@@ -68,8 +68,9 @@ public class FinancialStatement {
   @Column(name = "data_source", length = 50)
   private String dataSource;
 
-  @Column(name = "sj_div", length = 4)
-  private String sjDiv;
+  // Mirrors the V8 column DEFAULT 'CIS'; Hibernate writes an explicit NULL otherwise.
+  @Column(name = "sj_div", length = 4, nullable = false)
+  private String sjDiv = "CIS";
 
   @Column(name = "fs_div", length = 4)
   private String fsDiv;

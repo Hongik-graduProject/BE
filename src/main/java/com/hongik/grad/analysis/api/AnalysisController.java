@@ -1,6 +1,7 @@
 package com.hongik.grad.analysis.api;
 
 import com.hongik.grad.analysis.application.AnalysisQueryService;
+import com.hongik.grad.analysis.application.ReportBackfillService;
 import com.hongik.grad.analysis.dto.ReportDetailResponse;
 import com.hongik.grad.analysis.dto.ReportListResponse;
 import com.hongik.grad.analysis.dto.StockPredictionResponse;
@@ -23,9 +24,12 @@ public class AnalysisController {
   private static final Logger log = LoggerFactory.getLogger(AnalysisController.class);
 
   private final AnalysisQueryService analysisQueryService;
+  private final ReportBackfillService reportBackfillService;
 
-  public AnalysisController(AnalysisQueryService analysisQueryService) {
+  public AnalysisController(
+      AnalysisQueryService analysisQueryService, ReportBackfillService reportBackfillService) {
     this.analysisQueryService = analysisQueryService;
+    this.reportBackfillService = reportBackfillService;
   }
 
   @GetMapping("/{ticker}/themes")
@@ -49,8 +53,13 @@ public class AnalysisController {
       @RequestParam(value = "page", defaultValue = "1") int page,
       @RequestParam(value = "size", defaultValue = "20") int size,
       @RequestParam(value = "sort", defaultValue = "latest") String sort) {
-    return ApiResponse.success(
-        analysisQueryService.listReports(user.id(), ticker, page, size, sort));
+    // 먼저 조회해서 파라미터·종목 검증을 끝낸다. 잘못된 요청에 DART 호출을 하지 않기 위해서다.
+    ReportListResponse reports =
+        analysisQueryService.listReports(user.id(), ticker, page, size, sort);
+    if (page == 1 && reportBackfillService.ensureRecentReports(ticker)) {
+      reports = analysisQueryService.listReports(user.id(), ticker, page, size, sort);
+    }
+    return ApiResponse.success(reports);
   }
 
   @GetMapping("/reports/{report_id}")

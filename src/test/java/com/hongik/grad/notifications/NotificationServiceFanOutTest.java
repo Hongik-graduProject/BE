@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.hongik.grad.analysis.domain.AnalysisReport;
 import com.hongik.grad.folders.domain.FavoriteRepository;
 import com.hongik.grad.notifications.application.FcmSender;
 import com.hongik.grad.notifications.application.NotificationService;
@@ -19,9 +20,12 @@ import com.hongik.grad.notifications.domain.Notification;
 import com.hongik.grad.notifications.domain.NotificationRepository;
 import com.hongik.grad.notifications.domain.NotificationType;
 import com.hongik.grad.notifications.domain.Platform;
+import com.hongik.grad.notifications.dto.NotificationListResponse;
 import com.hongik.grad.stocks.domain.Market;
 import com.hongik.grad.stocks.domain.Stock;
 import com.hongik.grad.stocks.domain.StockRepository;
+import com.hongik.grad.themes.domain.Theme;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -30,7 +34,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceFanOutTest {
@@ -146,5 +153,30 @@ class NotificationServiceFanOutTest {
 
     verify(notificationRepository, never()).saveAll(anyList());
     verify(fcmSender, never()).send(anyString(), anyString(), anyString(), any());
+  }
+
+  @Test
+  @DisplayName("목록: report 연결 알림은 expected_car·테마명 포함, 공시 알림은 null (보고서 일괄 조회 1회)")
+  void list_enrichesWithReport() {
+    UUID userId = UUID.randomUUID();
+    Notification reportNoti =
+        new Notification(userId, NotificationType.DISCLOSURE_REPORT, "보고서", "b", "005930", 501L);
+    Notification disclosureNoti = Notification.forDisclosure(userId, "공시", "b", "005930", 9L);
+    given(notificationRepository.findByUserIdOrderByCreatedAtDesc(eq(userId), any()))
+        .willReturn(new PageImpl<>(List.of(reportNoti, disclosureNoti), PageRequest.of(0, 20), 2));
+    AnalysisReport report = Mockito.mock(AnalysisReport.class);
+    given(report.getId()).willReturn(501L);
+    given(report.getExpectedCar()).willReturn(new BigDecimal("1.9529"));
+    given(report.getAppliedTheme()).willReturn(new Theme("반도체"));
+    given(notificationRepository.findReportsWithThemeByIdIn(java.util.Set.of(501L)))
+        .willReturn(List.of(report));
+
+    NotificationListResponse res = service().list(userId, null, null, 1, 20);
+
+    assertThat(res.notifications().get(0).expectedCar()).isEqualTo(1.9529);
+    assertThat(res.notifications().get(0).appliedThemeName()).isEqualTo("반도체");
+    assertThat(res.notifications().get(1).expectedCar()).isNull();
+    assertThat(res.notifications().get(1).appliedThemeName()).isNull();
+    verify(notificationRepository, times(1)).findReportsWithThemeByIdIn(any());
   }
 }

@@ -140,6 +140,12 @@ Hibernate 6.2+ 는 JSON / UUID 를 native 로 지원하므로 `hypersistence-uti
     name=…, category=…` 또는 truncate-replace 마이그레이션으로 교체 예정.
   - CSV 파일은 SQL 의 "source of truth" 로 함께 커밋되며, 추후 생성 스크립트의
     입력으로도 사용할 수 있다.
+  - **(2026-11-01 갱신)** placeholder 는 전부 제거되었다. V7 이 `K%` 200 개를,
+    V10 이 V7 에서 빠뜨린 `Q%` 150 개를 지운다. 실제 종목은 부팅 시
+    `CorpCodeBootstrap` 이 DART `corpCode.xml` 로 채운다.
+  - **(2026-11-02 갱신)** 시장(KOSPI/KOSDAQ)은 네이버 시장별 목록으로 정하고, 두 목록 어디에도 없는
+    종목은 넣지 않는다. V11 은 V8 이 이름을 잘못 적어 남은 `uk_financial_ticker_period`
+    (V1) 를 지운다. 이제 재무제표 고유 키는 `(ticker, period_type, period, sj_div)` 하나다.
 
 ---
 

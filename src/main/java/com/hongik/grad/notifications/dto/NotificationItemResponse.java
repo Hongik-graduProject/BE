@@ -14,4 +14,6 @@ public record NotificationItemResponse(
     @JsonProperty("report_id") Long reportId,
     @JsonProperty("disclosure_id") Long disclosureId,
     @JsonProperty("is_read") boolean isRead,
+    @JsonProperty("expected_car") Double expectedCar,
+    @JsonProperty("applied_theme_name") String appliedThemeName,
     @JsonProperty("created_at") OffsetDateTime createdAt) {}

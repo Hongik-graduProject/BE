@@ -1,5 +1,7 @@
 package com.hongik.grad.stocks.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -7,53 +9,52 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
+import org.jsoup.parser.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/** 네이버 금융 종목별 뉴스 페이지 크롤러. */
+/**
+ * 네이버 모바일 증권 종목 뉴스 API 비공식 호출. 기존 PC 페이지(news_news.naver)는 2026-10 에 410 으로 종료됐다.
+ *
+ * <p>응답은 묶음 배열이다: {@code [{"total":1,"items":[{"officeName":"MBC","datetime":"202611022006",
+ * "titleFull":"...","mobileNewsUrl":"https://n.news.naver.com/...","imageOriginLink":"..."}]}]}
+ */
 @Component
 public class NaverNewsClient {
 
   private static final Logger log = LoggerFactory.getLogger(NaverNewsClient.class);
   private static final String URL_FMT =
-      "https://finance.naver.com/item/news_news.naver?code=%s&page=1";
-  private static final String REFERER_FMT = "https://finance.naver.com/item/main.naver?code=%s";
-  private static final DateTimeFormatter NAVER_DATE =
-      DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm");
+      "https://m.stock.naver.com/api/news/stock/%s?pageSize=20&page=1";
+  private static final DateTimeFormatter NAVER_DATE = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
 
-  /** 종목별 최신 뉴스 페이지 1쪽을 크롤링. 실패 시 빈 리스트. */
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
+  /** 종목별 최신 뉴스 1쪽을 가져온다. 실패 시 빈 리스트. */
   public List<CrawledNews> fetchNews(String ticker) {
     try {
-      Document doc =
+      String body =
           Jsoup.connect(String.format(URL_FMT, ticker))
               .userAgent(
                   "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/537.36"
                       + " (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-              .referrer(String.format(REFERER_FMT, ticker))
+              .referrer("https://m.stock.naver.com/")
+              .ignoreContentType(true)
               .timeout(5000)
-              .get();
+              .execute()
+              .body();
       List<CrawledNews> items = new ArrayList<>();
-      for (Element row : doc.select("table.type5 tbody tr")) {
-        // 관련 뉴스(연관 묶음) 헤더/리스트는 제외
-        if (row.hasClass("relation_tit") || row.hasClass("relation_lst")) continue;
-        Element titleA = row.selectFirst("td.title a.tit");
-        if (titleA == null) titleA = row.selectFirst("td.title a");
-        if (titleA == null) continue;
-
-        String title = titleA.text().trim();
-        if (title.isEmpty()) continue;
-        String url = titleA.absUrl("href");
-        if (url.isEmpty()) url = titleA.attr("href");
-
-        Element src = row.selectFirst("td.info");
-        Element date = row.selectFirst("td.date");
-        String source = src == null ? null : src.text().trim();
-        OffsetDateTime publishedAt = parseDate(date == null ? null : date.text().trim());
-
-        items.add(new CrawledNews(title, source, url, null, publishedAt));
+      for (JsonNode group : objectMapper.readTree(body)) {
+        for (JsonNode n : group.path("items")) {
+          String title = Parser.unescapeEntities(n.path("titleFull").asText(""), false).trim();
+          String url = n.path("mobileNewsUrl").asText("");
+          if (title.isEmpty() || url.isEmpty()) continue;
+          String source = n.path("officeName").asText(null);
+          String thumbnail = n.path("imageOriginLink").asText(null);
+          items.add(
+              new CrawledNews(
+                  title, source, url, thumbnail, parseDate(n.path("datetime").asText(null))));
+        }
       }
       return items;
     } catch (Exception ex) {

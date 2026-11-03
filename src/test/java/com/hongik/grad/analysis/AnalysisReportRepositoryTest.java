@@ -130,6 +130,36 @@ class AnalysisReportRepositoryTest {
   }
 
   @Test
+  @DisplayName("findByDisclosureIdIn: 공시 목록의 보고서 링크를 한 번에 찾는다")
+  void findByDisclosureIdIn() {
+    Disclosure withReport =
+        disclosureRepository.save(
+            new Disclosure(
+                stock,
+                "LINK-" + System.nanoTime(),
+                "주요사항보고서",
+                DisclosureType.EVENT,
+                OffsetDateTime.now()));
+    Disclosure withoutReport =
+        disclosureRepository.save(
+            new Disclosure(
+                stock,
+                "NOLINK-" + System.nanoTime(),
+                "기타공시",
+                DisclosureType.EVENT,
+                OffsetDateTime.now()));
+    AnalysisReport report = new AnalysisReport(stock, theme, "보고서");
+    report.setDisclosure(withReport);
+    AnalysisReport saved = analysisReportRepository.save(report);
+
+    var found =
+        analysisReportRepository.findByDisclosureIdIn(
+            java.util.List.of(withReport.getId(), withoutReport.getId()));
+
+    assertThat(found).extracting(AnalysisReport::getId).containsExactly(saved.getId());
+  }
+
+  @Test
   @DisplayName("ReportReadStatus 저장 후 user_id + report_id로 조회된다")
   void readStatusRoundTrip() {
     UUID userId = UUID.randomUUID();

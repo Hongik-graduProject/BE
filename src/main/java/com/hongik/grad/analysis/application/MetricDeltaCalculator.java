@@ -2,8 +2,10 @@ package com.hongik.grad.analysis.application;
 
 import com.hongik.grad.stocks.domain.FinancialStatement;
 import com.hongik.grad.stocks.domain.FinancialStatementRepository;
+import com.hongik.grad.stocks.domain.PeriodType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -31,14 +33,50 @@ public class MetricDeltaCalculator {
   }
 
   public DeltaSnapshot computeForTicker(String ticker) {
-    List<FinancialStatement> statements =
-        financialStatementRepository.findByStockTickerOrderByPeriodDesc(ticker);
-    if (statements.isEmpty()) {
+    // 같은 기간에 BS·CF 행도 따로 있으므로 손익계산서(CIS) 행만 쓴다.
+    // 연간 행이 두 개 이상이면 연간 대 연간으로 비교한다.
+    List<FinancialStatement> annual =
+        incomeStatements(
+            financialStatementRepository.findByStockTickerAndPeriodTypeOrderByPeriodDesc(
+                ticker, PeriodType.ANNUAL));
+    if (annual.size() >= 2) {
+      return new DeltaSnapshot(annual.get(0), annual.get(1));
+    }
+    // DART 분기 행(Q1·H1·Q3)은 누적치라 서로 비교할 수 없고 문자열 정렬도 시간 순이 아니다 ("2026Q1" > "2026H1").
+    // 시간 순 최신 행을 전년 같은 기간과 비교한다 (2026H1 ↔ 2025H1). 없으면 previous 는 null.
+    List<FinancialStatement> all =
+        incomeStatements(financialStatementRepository.findByStockTickerOrderByPeriodDesc(ticker));
+    if (all.isEmpty()) {
       return DeltaSnapshot.empty();
     }
-    FinancialStatement latest = statements.get(0);
-    FinancialStatement previous = statements.size() > 1 ? statements.get(1) : null;
+    FinancialStatement latest =
+        all.stream().max(Comparator.comparing(f -> periodKey(f.getPeriod()))).orElseThrow();
+    String prevPeriod = sameQuarterLastYear(latest.getPeriod());
+    FinancialStatement previous =
+        all.stream().filter(f -> f.getPeriod().equals(prevPeriod)).findFirst().orElse(null);
     return new DeltaSnapshot(latest, previous);
+  }
+
+  /** "2025Q1" < "2025H1" < "2025Q3" < "2025Q4" 순서가 되게 하는 정렬 키. */
+  static String periodKey(String period) {
+    if (period == null || period.length() < 6) return String.valueOf(period);
+    String order =
+        switch (period.substring(4)) {
+          case "Q1" -> "1";
+          case "H1" -> "2";
+          case "Q3" -> "3";
+          case "Q4" -> "4";
+          default -> period.substring(4);
+        };
+    return period.substring(0, 4) + order;
+  }
+
+  static String sameQuarterLastYear(String period) {
+    try {
+      return (Integer.parseInt(period.substring(0, 4)) - 1) + period.substring(4);
+    } catch (RuntimeException e) {
+      return "";
+    }
   }
 
   /**
@@ -70,7 +108,17 @@ public class MetricDeltaCalculator {
             ? null
             : extractRaw(snapshot.previous(), canonical).orElse(null);
 
-    return MetricCanonicalCode.computeDelta(canonical, latestValue.get(), previousValue);
+    return MetricCanonicalCode.computeDelta(canonical, latestValue.get(), previousValue)
+        .map(d -> clamp(d, canonical.strategy()));
+  }
+
+  /**
+   * 정규화(z-score)가 없어서 극단값이 그대로 β 에 곱해진다 (예: 지주회사 지분법 이익으로 영업이익률 600%). 비율 차이는 ±20%p, 성장률은 ±50% 로
+   * 자른다.
+   */
+  static double clamp(double delta, MetricCanonicalCode.ComputeStrategy strategy) {
+    double cap = strategy == MetricCanonicalCode.ComputeStrategy.YOY_PERCENT ? 50.0 : 20.0;
+    return Math.max(-cap, Math.min(cap, delta));
   }
 
   /**
@@ -106,6 +154,10 @@ public class MetricDeltaCalculator {
         BigDecimal.valueOf(numerator)
             .divide(BigDecimal.valueOf(denominator), SCALE, RoundingMode.HALF_UP)
             .multiply(BigDecimal.valueOf(100)));
+  }
+
+  private static List<FinancialStatement> incomeStatements(List<FinancialStatement> rows) {
+    return rows.stream().filter(f -> "CIS".equals(f.getSjDiv())).toList();
   }
 
   /** Pair of latest + previous {@link FinancialStatement} (either may be null when missing). */
