@@ -19,6 +19,8 @@ import com.hongik.grad.themes.domain.ThemeMetricSensitivityRepository;
 import com.hongik.grad.themes.domain.ThemeRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -49,6 +51,7 @@ public class AnalysisReportGenerator {
   private static final int CONTRIB_SCALE = 6;
   private static final int CAR_SCALE = 4;
   private static final int ROUTING_SCORE_SCALE = 4;
+  private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
   private final ThemeRouter themeRouter;
   private final ThemeRepository themeRepository;
@@ -153,7 +156,10 @@ public class AnalysisReportGenerator {
           ticker);
     }
 
-    MetricDeltaCalculator.DeltaSnapshot snapshot = metricDeltaCalculator.computeForTicker(ticker);
+    // 공시 당일까지 공개된 재무만 쓴다. 공시 뒤에 나온 실적을 쓰면 되감기 성적이 부풀려진다.
+    LocalDate asOf = disclosure.getFiledAt().atZoneSameInstant(KST).toLocalDate();
+    MetricDeltaCalculator.DeltaSnapshot snapshot =
+        metricDeltaCalculator.computeForTicker(ticker, asOf);
     if (snapshot.latest() == null) {
       // 재무 데이터 없이 만들면 기여도가 전부 0 인 보고서가 남는다. ReportBackfillService 가 재무를 받은 뒤 다시 만든다.
       log.info("Skip report — no financial statements yet for ticker={}", ticker);
@@ -260,18 +266,22 @@ public class AnalysisReportGenerator {
               ? String.format(Locale.ROOT, "%.2f", fs.getPbr().doubleValue())
               : null;
       case ROE, OP_MARGIN, NET_MARGIN, DEBT_RATIO, DIVIDEND_YIELD, FOREIGN_RATIO ->
-          buildRatioPercent(canonical, fs);
+          buildRatioPercent(canonical, fs, snapshot.latestBs());
       default -> null;
     };
   }
 
-  private String buildRatioPercent(MetricCanonicalCode canonical, FinancialStatement fs) {
+  /** 자본·부채는 같은 기간의 재무상태표(BS) 행 {@code bs} 에 있다. */
+  private String buildRatioPercent(
+      MetricCanonicalCode canonical, FinancialStatement fs, FinancialStatement bs) {
+    Long totalEquity = bs == null ? null : bs.getTotalEquity();
+    Long totalLiabilities = bs == null ? null : bs.getTotalLiabilities();
     Optional<BigDecimal> val =
         switch (canonical) {
-          case ROE -> ratioOpt(fs.getNetIncome(), fs.getTotalEquity());
+          case ROE -> ratioOpt(fs.getNetIncome(), totalEquity);
           case OP_MARGIN -> ratioOpt(fs.getOperatingProfit(), fs.getRevenue());
           case NET_MARGIN -> ratioOpt(fs.getNetIncome(), fs.getRevenue());
-          case DEBT_RATIO -> ratioOpt(fs.getTotalLiabilities(), fs.getTotalEquity());
+          case DEBT_RATIO -> ratioOpt(totalLiabilities, totalEquity);
           case DIVIDEND_YIELD -> Optional.ofNullable(fs.getDividendYield());
           default -> Optional.empty();
         };

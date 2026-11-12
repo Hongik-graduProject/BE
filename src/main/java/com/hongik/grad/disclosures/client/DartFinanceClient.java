@@ -63,7 +63,8 @@ public class DartFinanceClient {
             new FinanceRow(
                 n.path("account_nm").asText(""),
                 n.path("thstrm_amount").asText(""),
-                n.path("sj_div").asText("")));
+                n.path("sj_div").asText(""),
+                n.path("rcept_no").asText("")));
       }
       return rows;
     } catch (Exception ex) {
@@ -72,6 +73,9 @@ public class DartFinanceClient {
     }
   }
 
-  /** sjDiv = 재무제표 구분 (BS·IS·CIS·CF·SCE). 연결/별도(fs_div)는 요청 파라미터라 행에 없다. */
-  public record FinanceRow(String accountNm, String amount, String sjDiv) {}
+  /**
+   * sjDiv = 재무제표 구분 (BS·IS·CIS·CF·SCE). 연결/별도(fs_div)는 요청 파라미터라 행에 없다. rceptNo = 접수번호, 앞 8 자리가
+   * 접수일(yyyyMMdd).
+   */
+  public record FinanceRow(String accountNm, String amount, String sjDiv, String rceptNo) {}
 }

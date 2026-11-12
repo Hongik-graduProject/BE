@@ -1,5 +1,6 @@
 package com.hongik.grad.stocks.domain;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,8 +18,9 @@ public interface FinancialStatementRepository extends JpaRepository<FinancialSta
   Optional<FinancialStatement> findByStockTickerAndPeriodTypeAndPeriodAndSjDiv(
       String ticker, PeriodType periodType, String period, String sjDiv);
 
-  boolean existsByStockTickerAndPeriodTypeAndPeriodAndSjDiv(
-      String ticker, PeriodType periodType, String period, String sjDiv);
+  /** disclosed_at 이 NULL 인 행은 SQL 비교에서 빠진다. */
+  List<FinancialStatement> findByStockTickerAndDisclosedAtLessThanEqualOrderByPeriodDesc(
+      String ticker, LocalDate asOf);
 
-  long countByStockTicker(String ticker);
+  long countByStockTickerAndDisclosedAtIsNotNull(String ticker);
 }
