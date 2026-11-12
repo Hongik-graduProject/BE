@@ -22,4 +22,12 @@ public interface AnalysisReportRepository extends JpaRepository<AnalysisReport, 
    */
   @EntityGraph(attributePaths = {"appliedTheme"})
   List<AnalysisReport> findByStockTickerInOrderByGeneratedAtDesc(Collection<String> tickers);
+
+  /**
+   * Critique (반박 모드) loads the report in one short tx and then does network I/O with no tx open, so
+   * stock/disclosure/appliedTheme must be fetched eagerly here — accessing them later on the
+   * detached entity would otherwise throw LazyInitializationException.
+   */
+  @EntityGraph(attributePaths = {"stock", "disclosure", "appliedTheme"})
+  Optional<AnalysisReport> findWithAssociationsById(Long id);
 }
