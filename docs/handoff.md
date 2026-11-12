@@ -126,23 +126,17 @@ b9c28e2 feat(critique): ...
 - 레이더 각도축은 데모 ThemeSense 17 개 테마 기준이다.
 - `application.yml` 은 아무도 수정하지 않는다. 설정은 `@Value` 기본값으로 둔다.
 
-## 4. git 전략
+## 4. git 작업 기록 (완료됨)
 
-| 단계 | 작업 |
-|---|---|
-| 1 | 검토 승인된 worktree 에서 기능 브랜치를 만들고 커밋한다 |
-| 2 | 기능 브랜치를 `origin` 에 푸시한다 |
-| 3 | `main` 에 머지한다. 순서: timemachine, critique, radar |
-| 4 | 충돌이 나면 직접 풀고 컴파일·테스트 후 `main` 을 푸시한다 |
-| 5 | worktree 를 정리한다 (`git worktree remove`) |
+실제로 밟은 순서:
 
-브랜치 이름: `feat/timemachine`, `feat/radar`, `feat/critique`.
-반박 모드 worktree 는 `feat/timemachine` 에서 분기한다.
+1. 타임머신·레이더를 각 worktree 에서 `feat/timemachine`·`feat/radar` 로 커밋.
+2. 두 브랜치를 origin 에 푸시, main 에 머지(순서: timemachine → radar), main 푸시.
+3. 머지된 main 에서 반박 모드 worktree 를 떼어 구현 → `feat/critique` 커밋·머지·푸시.
+4. 세 머지 모두 충돌 없음. 임시 worktree 3 개는 `git worktree remove` 로 정리 완료.
 
-worktree 위치:
-
-- `C:\dev\hongik\grad\BE-wt-timemachine` (detached, base `743ab53`)
-- `C:\dev\hongik\grad\BE-wt-radar` (detached, base `743ab53`)
+브랜치: `feat/timemachine`, `feat/radar`, `feat/critique` 모두 origin 에 있음.
+worktree 는 남아 있지 않다 (`git worktree list` 는 main 하나만 보여준다).
 
 ## 5. 이 환경의 제약
 
@@ -151,21 +145,27 @@ worktree 위치:
   를 지정한다. 레이더 에이전트가 확인했다.
 - Docker 가 없어 Testcontainers 테스트(Flyway 스모크, E2E)를 돌릴 수 없다.
   V13·V14 를 실제 Postgres 에 적용하는 검증은 Docker 가 있는 곳에서 해야 한다.
-- arch-gate 훅: `radar/`·`timemachine/` 같은 서버 코드 작성 시 `.kisp/arch.json`
-  이 없으면 차단된다. 회피·로그 무력화는 금지. 정당한 길은 arch.json 선언을
-  두는 것이다. 사용자 결정 대기 중 (owner 값 + 로컬 전용 생성 여부).
+- arch-gate 훅: Spring Boot 서버 코드 `.java` 새 파일 Write 시 `.kisp/arch.json`
+  이 없으면 차단된다 (§1 arch-gate 결정 참조). 회피·로그 무력화는 금지.
+  사용자가 arch.json 을 만들지 않기로 결정 → 슬라이스 테스트 2 개 생략으로 종결.
 - 회사 정책상 외부 네트워크 호출은 실행하지 않는다. 네이버 KOSPI 지수 엔드포인트
   형식은 검증되지 않았다.
 - 커밋 시 사내 `safe-commit` 훅이 형식과 이슈번호를 검사할 수 있다.
 
-## 6. 다음 할 일
+## 6. 다음 세션이 할 일 (3 기능 자체는 끝남)
 
-1. 타임머신·레이더 에이전트 결과를 받는다.
-2. 각 결과를 `/team critic:1` 로 검토하고 지적 사항을 반영한다.
-3. 승인된 것부터 §4 순서로 커밋·푸시·머지한다.
-4. 반박 모드 에이전트를 `feat/timemachine` 기반 worktree 에서 돌린다.
-5. 반박 모드도 검토·커밋·머지한다.
-6. 매 단계 이 문서를 갱신한다.
+세 기능의 구현·검토·머지·푸시는 모두 끝났다. 남은 것은 검증과 후속뿐이다.
+
+1. **HTTP 계층 수동 확인** (§1 "반드시 남은 수동 확인"). 앱을 띄워 curl 로
+   5 개 엔드포인트의 401/400/404/200/SSE 를 직접 본다. 슬라이스 테스트가 없다.
+2. **Docker 환경에서 Flyway 검증.** V1→V14 전체 시퀀스를 실제 Postgres 로
+   dry-run (`*FlywayMigrationSmokeTest*`). V13/V14 가 이 세션에선 미검증.
+3. **네이버 KOSPI 지수 엔드포인트 실호출 확인.** 응답 형식 미검증 (타임머신 시세용).
+4. **데이터 적재** (화면이 실제로 채워지려면): `DART_API_KEY` →
+   `generate_demo_themesense.py` + `--etl-themesense` → 재무제표 적재.
+   자세한 선행 과제는 `feature-implementation-plan.md` §6.
+5. (선택) 비차단 크리틱 지적 2 건 반영. 위 "반영 안 한 크리틱 지적" 참조.
+6. (선택) arch.json 을 로컬에 두면 슬라이스 테스트 2 개를 되살릴 수 있다 (§1).
 
 ## 7. 이전 세션까지 끝난 일
 
