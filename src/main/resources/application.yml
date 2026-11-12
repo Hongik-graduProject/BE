@@ -10,6 +10,11 @@ spring:
   threads:
     virtual:
       enabled: true
+  task:
+    scheduling:
+      # 2 threads so the radar SSE heartbeat cannot stall the DART poller (both @Scheduled).
+      pool:
+        size: 2
   jpa:
     open-in-view: false
     hibernate:

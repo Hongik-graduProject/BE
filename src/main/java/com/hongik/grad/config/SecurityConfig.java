@@ -3,6 +3,7 @@ package com.hongik.grad.config;
 import com.hongik.grad.auth.filter.JwtAuthenticationFilter;
 import com.hongik.grad.auth.handler.JsonAccessDeniedHandler;
 import com.hongik.grad.auth.handler.JsonAuthenticationEntryPoint;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -46,7 +47,12 @@ public class SecurityConfig {
         .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(HttpMethod.OPTIONS, "/**")
+                // ASYNC/ERROR re-dispatches only follow a REQUEST dispatch that was already
+                // authorized; the JWT filter does not re-run on them, so without this an SSE
+                // timeout/completion dispatch is denied after the stream is committed.
+                auth.dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR)
+                    .permitAll()
+                    .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll()
                     .requestMatchers("/actuator/health", "/actuator/health/**")
                     .permitAll()
