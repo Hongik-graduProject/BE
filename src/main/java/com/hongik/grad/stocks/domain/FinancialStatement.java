@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -74,6 +75,10 @@ public class FinancialStatement {
 
   @Column(name = "fs_div", length = 4)
   private String fsDiv;
+
+  // 이 수치가 시장에 공개된 날. 되감기 때 그날 이후 공시된 재무를 쓰지 않으려고 둔다.
+  @Column(name = "disclosed_at")
+  private LocalDate disclosedAt;
 
   // 손익계산서 확장
   @Column private Long sga;
@@ -227,6 +232,10 @@ public class FinancialStatement {
     return fsDiv;
   }
 
+  public LocalDate getDisclosedAt() {
+    return disclosedAt;
+  }
+
   public Long getSga() {
     return sga;
   }
@@ -309,6 +318,10 @@ public class FinancialStatement {
 
   public void assignFsDiv(String fsDiv) {
     this.fsDiv = fsDiv;
+  }
+
+  public void assignDisclosedAt(LocalDate disclosedAt) {
+    this.disclosedAt = disclosedAt;
   }
 
   /** DART fnlttSinglAcntAll 응답을 한 번에 흡수. null 인자는 변경하지 않는다. */

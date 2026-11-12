@@ -12,6 +12,8 @@ import com.hongik.grad.stocks.domain.StockRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -59,7 +61,8 @@ public class FinancialStatementFetchService {
     Stock stock = stockRepository.findById(ticker).orElse(null);
     if (stock == null || stock.getCorpCode() == null || stock.getCorpCode().isBlank()) return;
 
-    long rowCount = financialStatementRepository.countByStockTicker(ticker);
+    // disclosed_at 이 없는 V14 이전 행은 세지 않는다. 다시 받으면서 공시일을 채운다.
+    long rowCount = financialStatementRepository.countByStockTickerAndDisclosedAtIsNotNull(ticker);
     if (rowCount >= MIN_ROWS_TO_SKIP_REFRESH) return;
 
     String corp = stock.getCorpCode();
@@ -110,6 +113,12 @@ public class FinancialStatementFetchService {
       rows = dartFinanceClient.fetch(corp, year, reprtCode, fsDiv);
     }
     if (rows.isEmpty()) return;
+    LocalDate disclosedAt =
+        rows.stream()
+            .map(r -> parseDisclosedAt(r.rceptNo()))
+            .filter(d -> d != null)
+            .findFirst()
+            .orElse(null);
 
     Map<String, List<FinanceRow>> byDiv =
         rows.stream()
@@ -118,13 +127,18 @@ public class FinancialStatementFetchService {
 
     for (Map.Entry<String, List<FinanceRow>> entry : byDiv.entrySet()) {
       String sjDiv = entry.getKey();
-      if (financialStatementRepository.existsByStockTickerAndPeriodTypeAndPeriodAndSjDiv(
-          stock.getTicker(), pt, period, sjDiv)) {
+      FinancialStatement existing =
+          financialStatementRepository
+              .findByStockTickerAndPeriodTypeAndPeriodAndSjDiv(stock.getTicker(), pt, period, sjDiv)
+              .orElse(null);
+      if (existing != null) {
+        if (existing.getDisclosedAt() == null) existing.assignDisclosedAt(disclosedAt);
         continue;
       }
       FinancialStatement fs = new FinancialStatement(stock, pt, period);
       fs.assignSjDiv(sjDiv);
       fs.assignFsDiv(fsDiv);
+      fs.assignDisclosedAt(disclosedAt);
       List<FinanceRow> lines = entry.getValue();
 
       if ("BS".equals(sjDiv)) {
@@ -166,6 +180,16 @@ public class FinancialStatementFetchService {
         period,
         fsDiv,
         byDiv.keySet());
+  }
+
+  /** 접수번호 앞 8 자리(yyyyMMdd)가 접수일이다. 형식이 다르면 null — 그 행은 되감기 계산에서 빠진다. */
+  static LocalDate parseDisclosedAt(String rceptNo) {
+    if (rceptNo == null || rceptNo.length() < 8) return null;
+    try {
+      return LocalDate.parse(rceptNo.substring(0, 8), DateTimeFormatter.BASIC_ISO_DATE);
+    } catch (DateTimeParseException e) {
+      return null;
+    }
   }
 
   /** 자본변동표(SCE) 등은 버린다. 손익계산서로 합치면 "지배기업…자본" 행이 순이익 자리에 들어간다. */

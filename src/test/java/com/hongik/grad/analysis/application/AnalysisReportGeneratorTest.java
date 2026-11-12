@@ -2,6 +2,7 @@ package com.hongik.grad.analysis.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,6 +31,7 @@ import com.hongik.grad.themes.domain.ThemeMetricSensitivityRepository;
 import com.hongik.grad.themes.domain.ThemeRepository;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -99,7 +101,7 @@ class AnalysisReportGeneratorTest {
         .thenReturn(sensitivities);
 
     FinancialStatement latest = new FinancialStatement(stock, PeriodType.QUARTERLY, "2024Q4");
-    when(metricDeltaCalculator.computeForTicker("005930"))
+    when(metricDeltaCalculator.computeForTicker(eq("005930"), any()))
         .thenReturn(new MetricDeltaCalculator.DeltaSnapshot(latest, null));
     when(metricDeltaCalculator.delta(any(), any())).thenAnswer(invocation -> Optional.of(1.0));
 
@@ -178,7 +180,7 @@ class AnalysisReportGeneratorTest {
         .thenReturn(List.of());
 
     FinancialStatement latest = new FinancialStatement(stock, PeriodType.QUARTERLY, "2024Q4");
-    when(metricDeltaCalculator.computeForTicker("005930"))
+    when(metricDeltaCalculator.computeForTicker(eq("005930"), any()))
         .thenReturn(new MetricDeltaCalculator.DeltaSnapshot(latest, null));
 
     when(analysisReportRepository.save(any(AnalysisReport.class)))
@@ -221,7 +223,7 @@ class AnalysisReportGeneratorTest {
         .thenReturn(sensitivities);
 
     FinancialStatement latest = new FinancialStatement(stock, PeriodType.QUARTERLY, "2024Q4");
-    when(metricDeltaCalculator.computeForTicker("005930"))
+    when(metricDeltaCalculator.computeForTicker(eq("005930"), any()))
         .thenReturn(new MetricDeltaCalculator.DeltaSnapshot(latest, null));
     // Each alias must resolve and return a non-empty delta
     when(metricDeltaCalculator.delta(any(), any())).thenAnswer(inv -> Optional.of(2.0));
@@ -262,11 +264,40 @@ class AnalysisReportGeneratorTest {
     when(sensitivityRepository.findByThemeIdAndModelVersionOrderByRankAsc(
             1L, "themesense-stage2-v1.0"))
         .thenReturn(List.of(newSensitivity(theme, "op_margin", 0.3, 0.3, 1, Direction.POSITIVE)));
-    when(metricDeltaCalculator.computeForTicker("005930"))
+    when(metricDeltaCalculator.computeForTicker(eq("005930"), any()))
         .thenReturn(MetricDeltaCalculator.DeltaSnapshot.empty());
 
     assertThat(generator.generate(disclosure)).isEmpty();
     verify(analysisReportRepository, never()).save(any());
+  }
+
+  @Test
+  @DisplayName("재무 조회 기준일은 공시 filed_at 의 한국 날짜다 (UTC 자정 전후로 날짜가 바뀜)")
+  void generate_passesFiledAtKstDateAsAsOf() throws Exception {
+    Stock stock = new Stock("005930", "삼성전자", Market.KOSPI);
+    Theme theme = newTheme(1L, "AI/반도체");
+    Disclosure disclosure =
+        new Disclosure(
+            stock,
+            "20240401000001",
+            "사업보고서",
+            DisclosureType.REPORT,
+            OffsetDateTime.parse("2024-03-31T16:00:00Z"));
+    setField(disclosure, "id", 100L);
+    when(themeRouter.route(disclosure))
+        .thenReturn(Optional.of(new RoutingResult(1L, "AI/반도체", 0.9)));
+    when(analysisReportRepository.findByStockTickerAndDisclosureId("005930", 100L))
+        .thenReturn(Optional.empty());
+    when(themeRepository.findById(1L)).thenReturn(Optional.of(theme));
+    when(sensitivityRepository.findByThemeIdAndModelVersionOrderByRankAsc(
+            1L, "themesense-stage2-v1.0"))
+        .thenReturn(List.of());
+    when(metricDeltaCalculator.computeForTicker(eq("005930"), any()))
+        .thenReturn(MetricDeltaCalculator.DeltaSnapshot.empty());
+
+    generator.generate(disclosure);
+
+    verify(metricDeltaCalculator).computeForTicker("005930", LocalDate.of(2024, 4, 1));
   }
 
   private Theme newTheme(Long id, String name) throws Exception {

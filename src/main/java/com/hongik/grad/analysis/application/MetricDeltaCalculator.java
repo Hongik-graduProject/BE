@@ -5,6 +5,7 @@ import com.hongik.grad.stocks.domain.FinancialStatementRepository;
 import com.hongik.grad.stocks.domain.PeriodType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -32,29 +33,47 @@ public class MetricDeltaCalculator {
     this.financialStatementRepository = financialStatementRepository;
   }
 
-  public DeltaSnapshot computeForTicker(String ticker) {
-    // 같은 기간에 BS·CF 행도 따로 있으므로 손익계산서(CIS) 행만 쓴다.
-    // 연간 행이 두 개 이상이면 연간 대 연간으로 비교한다.
-    List<FinancialStatement> annual =
-        incomeStatements(
-            financialStatementRepository.findByStockTickerAndPeriodTypeOrderByPeriodDesc(
-                ticker, PeriodType.ANNUAL));
-    if (annual.size() >= 2) {
-      return new DeltaSnapshot(annual.get(0), annual.get(1));
-    }
-    // DART 분기 행(Q1·H1·Q3)은 누적치라 서로 비교할 수 없고 문자열 정렬도 시간 순이 아니다 ("2026Q1" > "2026H1").
-    // 시간 순 최신 행을 전년 같은 기간과 비교한다 (2026H1 ↔ 2025H1). 없으면 previous 는 null.
-    List<FinancialStatement> all =
-        incomeStatements(financialStatementRepository.findByStockTickerOrderByPeriodDesc(ticker));
-    if (all.isEmpty()) {
+  /** {@code asOf} 당일까지 공시된 재무 행만 쓴다 (look-ahead bias 차단). disclosed_at 이 없는 행은 쓰지 않는다. */
+  public DeltaSnapshot computeForTicker(String ticker, LocalDate asOf) {
+    List<FinancialStatement> rows =
+        financialStatementRepository.findByStockTickerAndDisclosedAtLessThanEqualOrderByPeriodDesc(
+            ticker, asOf);
+    // 기간마다 CIS·BS·CF 행이 따로 있다. 비교할 기간은 손익계산서(CIS) 행으로 고르고, 자산·부채·자본은 같은 기간 BS 행에서 읽는다.
+    List<FinancialStatement> income =
+        rows.stream().filter(f -> "CIS".equals(f.getSjDiv())).toList();
+    if (income.isEmpty()) {
       return DeltaSnapshot.empty();
     }
-    FinancialStatement latest =
-        all.stream().max(Comparator.comparing(f -> periodKey(f.getPeriod()))).orElseThrow();
-    String prevPeriod = sameQuarterLastYear(latest.getPeriod());
-    FinancialStatement previous =
-        all.stream().filter(f -> f.getPeriod().equals(prevPeriod)).findFirst().orElse(null);
-    return new DeltaSnapshot(latest, previous);
+    FinancialStatement latest;
+    FinancialStatement previous;
+    List<FinancialStatement> annual =
+        income.stream().filter(f -> f.getPeriodType() == PeriodType.ANNUAL).toList();
+    if (annual.size() >= 2) {
+      // 연간 행이 두 개 이상이면 연간 대 연간으로 비교한다.
+      latest = annual.get(0);
+      previous = annual.get(1);
+    } else {
+      // DART 분기 행(Q1·H1·Q3)은 누적치라 서로 비교할 수 없고 문자열 정렬도 시간 순이 아니다 ("2026Q1" > "2026H1").
+      // 시간 순 최신 행을 전년 같은 기간과 비교한다 (2026H1 ↔ 2025H1). 없으면 previous 는 null.
+      latest =
+          income.stream().max(Comparator.comparing(f -> periodKey(f.getPeriod()))).orElseThrow();
+      String prevPeriod = sameQuarterLastYear(latest.getPeriod());
+      previous =
+          income.stream().filter(f -> f.getPeriod().equals(prevPeriod)).findFirst().orElse(null);
+    }
+    return new DeltaSnapshot(
+        latest, previous, balanceSheetOf(rows, latest), balanceSheetOf(rows, previous));
+  }
+
+  private static FinancialStatement balanceSheetOf(
+      List<FinancialStatement> rows, FinancialStatement income) {
+    if (income == null) return null;
+    return rows.stream()
+        .filter(f -> "BS".equals(f.getSjDiv()))
+        .filter(f -> f.getPeriodType() == income.getPeriodType())
+        .filter(f -> f.getPeriod().equals(income.getPeriod()))
+        .findFirst()
+        .orElse(null);
   }
 
   /** "2025Q1" < "2025H1" < "2025Q3" < "2025Q4" 순서가 되게 하는 정렬 키. */
@@ -98,7 +117,8 @@ public class MetricDeltaCalculator {
     }
     MetricCanonicalCode canonical = canonicalOpt.get();
 
-    Optional<BigDecimal> latestValue = extractRaw(snapshot.latest(), canonical);
+    Optional<BigDecimal> latestValue =
+        extractRaw(snapshot.latest(), snapshot.latestBs(), canonical);
     if (latestValue.isEmpty()) {
       return Optional.empty();
     }
@@ -106,7 +126,7 @@ public class MetricDeltaCalculator {
     BigDecimal previousValue =
         snapshot.previous() == null
             ? null
-            : extractRaw(snapshot.previous(), canonical).orElse(null);
+            : extractRaw(snapshot.previous(), snapshot.previousBs(), canonical).orElse(null);
 
     return MetricCanonicalCode.computeDelta(canonical, latestValue.get(), previousValue)
         .map(d -> clamp(d, canonical.strategy()));
@@ -122,20 +142,25 @@ public class MetricDeltaCalculator {
   }
 
   /**
-   * Extracts the base BigDecimal value for a canonical metric from a single FinancialStatement.
-   * Growth-rate metrics extract the raw quantity; the YOY_PERCENT formula is applied later in
-   * {@link MetricCanonicalCode#computeDelta}.
+   * Extracts the base BigDecimal value for a canonical metric from an income-statement row {@code
+   * fs} and the balance-sheet row {@code bs} of the same period (nullable). Growth-rate metrics
+   * extract the raw quantity; the YOY_PERCENT formula is applied later in {@link
+   * MetricCanonicalCode#computeDelta}.
    */
-  private Optional<BigDecimal> extractRaw(FinancialStatement fs, MetricCanonicalCode canonical) {
+  private Optional<BigDecimal> extractRaw(
+      FinancialStatement fs, FinancialStatement bs, MetricCanonicalCode canonical) {
+    Long totalAssets = bs == null ? null : bs.getTotalAssets();
+    Long totalLiabilities = bs == null ? null : bs.getTotalLiabilities();
+    Long totalEquity = bs == null ? null : bs.getTotalEquity();
     return switch (canonical) {
       case PER -> Optional.ofNullable(fs.getPer());
       case PBR -> Optional.ofNullable(fs.getPbr());
       case EPS -> Optional.ofNullable(fs.getEps()).map(BigDecimal::valueOf);
-      case ROE -> ratio(fs.getNetIncome(), fs.getTotalEquity());
-      case ROA -> ratio(fs.getNetIncome(), fs.getTotalAssets());
+      case ROE -> ratio(fs.getNetIncome(), totalEquity);
+      case ROA -> ratio(fs.getNetIncome(), totalAssets);
       case OP_MARGIN -> ratio(fs.getOperatingProfit(), fs.getRevenue());
       case NET_MARGIN -> ratio(fs.getNetIncome(), fs.getRevenue());
-      case DEBT_RATIO -> ratio(fs.getTotalLiabilities(), fs.getTotalEquity());
+      case DEBT_RATIO -> ratio(totalLiabilities, totalEquity);
       case CURRENT_RATIO -> Optional.empty();
       case FOREIGN_RATIO -> Optional.empty();
       case VOLATILITY -> Optional.empty();
@@ -156,12 +181,20 @@ public class MetricDeltaCalculator {
             .multiply(BigDecimal.valueOf(100)));
   }
 
-  private static List<FinancialStatement> incomeStatements(List<FinancialStatement> rows) {
-    return rows.stream().filter(f -> "CIS".equals(f.getSjDiv())).toList();
-  }
+  /**
+   * Latest + previous income-statement (CIS) rows plus the balance-sheet (BS) rows of the same
+   * periods. Any of them may be null when missing.
+   */
+  public record DeltaSnapshot(
+      FinancialStatement latest,
+      FinancialStatement previous,
+      FinancialStatement latestBs,
+      FinancialStatement previousBs) {
 
-  /** Pair of latest + previous {@link FinancialStatement} (either may be null when missing). */
-  public record DeltaSnapshot(FinancialStatement latest, FinancialStatement previous) {
+    public DeltaSnapshot(FinancialStatement latest, FinancialStatement previous) {
+      this(latest, previous, null, null);
+    }
+
     public static DeltaSnapshot empty() {
       return new DeltaSnapshot(null, null);
     }
