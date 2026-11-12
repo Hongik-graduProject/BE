@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.hongik.grad.analysis.application.AnalysisQueryService;
 import com.hongik.grad.analysis.application.ReportBackfillService;
+import com.hongik.grad.analysis.application.ReportCritiqueService;
 import com.hongik.grad.analysis.dto.AppliedThemeBriefResponse;
 import com.hongik.grad.analysis.dto.AppliedThemeResponse;
 import com.hongik.grad.analysis.dto.PaginationMeta;
@@ -55,6 +56,7 @@ class AnalysisControllerSliceTest {
   @Autowired private MockMvc mockMvc;
   @MockBean private AnalysisQueryService analysisQueryService;
   @MockBean private ReportBackfillService reportBackfillService;
+  @MockBean private ReportCritiqueService reportCritiqueService;
 
   private static final UUID USER_ID = UUID.randomUUID();
   private static final String TOKEN =

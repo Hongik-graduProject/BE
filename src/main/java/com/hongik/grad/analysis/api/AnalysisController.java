@@ -2,6 +2,8 @@ package com.hongik.grad.analysis.api;
 
 import com.hongik.grad.analysis.application.AnalysisQueryService;
 import com.hongik.grad.analysis.application.ReportBackfillService;
+import com.hongik.grad.analysis.application.ReportCritiqueService;
+import com.hongik.grad.analysis.dto.CritiqueResponse;
 import com.hongik.grad.analysis.dto.ReportDetailResponse;
 import com.hongik.grad.analysis.dto.ReportListResponse;
 import com.hongik.grad.analysis.dto.StockPredictionResponse;
@@ -25,11 +27,15 @@ public class AnalysisController {
 
   private final AnalysisQueryService analysisQueryService;
   private final ReportBackfillService reportBackfillService;
+  private final ReportCritiqueService reportCritiqueService;
 
   public AnalysisController(
-      AnalysisQueryService analysisQueryService, ReportBackfillService reportBackfillService) {
+      AnalysisQueryService analysisQueryService,
+      ReportBackfillService reportBackfillService,
+      ReportCritiqueService reportCritiqueService) {
     this.analysisQueryService = analysisQueryService;
     this.reportBackfillService = reportBackfillService;
+    this.reportCritiqueService = reportCritiqueService;
   }
 
   @GetMapping("/{ticker}/themes")
@@ -66,5 +72,12 @@ public class AnalysisController {
   public ApiResponse<ReportDetailResponse> getReportDetail(
       @AuthenticationPrincipal AuthUser user, @PathVariable("report_id") Long reportId) {
     return ApiResponse.success(analysisQueryService.getReportDetail(user.id(), reportId));
+  }
+
+  @GetMapping("/reports/{report_id}/critique")
+  public ApiResponse<CritiqueResponse> getCritique(
+      @AuthenticationPrincipal AuthUser user, @PathVariable("report_id") Long reportId) {
+    log.debug("getCritique report={} user={}", reportId, user.id());
+    return ApiResponse.success(reportCritiqueService.critique(reportId));
   }
 }
